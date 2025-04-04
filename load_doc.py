@@ -7,23 +7,32 @@ import mammoth
 class DocxLoaderComparison:
 
     @classmethod
-    def from_mammoth(cls, file_path: str) -> str:
+    def from_mammoth(cls, file_path: str, save_markdown: bool = False) -> str:
         """
         Load a .docx file using Mammoth.
 
         :param file_path: Path to the .docx file.
+        :param save_markdown: If True, saves the output as a Markdown file.
         :return: Extracted text as a string (Markdown format).
         """
         with open(file_path, "rb") as docx_file:
             result = mammoth.convert_to_markdown(docx_file)
-            return result.value  # Returns markdown-formatted text
+            extracted_text = result.value  # Returns markdown-formatted text
+
+        if save_markdown:
+            with open("mammoth_output.md", "w", encoding="utf-8") as f:
+                f.write(extracted_text)
+            print("Mammoth output saved as 'mammoth_output.md'")
+
+        return extracted_text
 
     @classmethod
-    def from_python_docx(cls, file_path: str) -> str:
+    def from_python_docx(cls, file_path: str, save_markdown: bool = False) -> str:
         """
         Load a .docx file using python-docx.
 
         :param file_path: Path to the .docx file.
+        :param save_markdown: If True, saves the output as a Markdown file.
         :return: Extracted text as a string.
         """
         doc = DocxDocument(file_path)
@@ -35,7 +44,14 @@ class DocxLoaderComparison:
             else:
                 extracted_text.append(para.text)
 
-        return "\n\n".join(extracted_text)
+        markdown_text = "\n\n".join(extracted_text)
+
+        if save_markdown:
+            with open("python_docx_output.md", "w", encoding="utf-8") as f:
+                f.write(markdown_text)
+            print("Python-docx output saved as 'python_docx_output.md'")
+
+        return markdown_text
 
     @staticmethod
     def compare_performance(file_path: str):
@@ -56,6 +72,8 @@ class DocxLoaderComparison:
 
         print(f"\nMammoth Loader Time: {mammoth_time:.4f} seconds")
         print(f"Python-docx Loader Time: {python_docx_time:.4f} seconds")
+        print(f"Length of Mammoth Text: {len(mammoth_content)} characters")
+        print(f"Length of Python-docx Text: {len(python_docx_content)} characters")
 
     @staticmethod
     def evaluate_extraction(mammoth_text: str, python_docx_text: str) -> float:
@@ -74,15 +92,16 @@ class DocxLoaderComparison:
         return similarity
 
     @staticmethod
-    def run_evaluation(file_path: str):
+    def run_evaluation(file_path: str, save_markdown: bool = False):
         """
         Run performance and accuracy evaluation on a given .docx file.
 
         :param file_path: Path to the .docx file.
+        :param save_markdown: If True, save markdown files for both loaders.
         """
         # Extract text using both methods
-        mammoth_content = DocxLoaderComparison.from_mammoth(file_path)
-        python_docx_content = DocxLoaderComparison.from_python_docx(file_path)
+        mammoth_content = DocxLoaderComparison.from_mammoth(file_path, save_markdown=save_markdown)
+        python_docx_content = DocxLoaderComparison.from_python_docx(file_path, save_markdown=save_markdown)
 
         # Compare Performance
         DocxLoaderComparison.compare_performance(file_path)
