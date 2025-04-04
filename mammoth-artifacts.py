@@ -1,12 +1,12 @@
 import os
 import time
-from typing import Union
 import mammoth
 import base64
 import re
+from typing import Union
 
 
-class DocxLoaderWithArtifacts:
+class DocxLoaderComparison:
 
     @classmethod
     def from_mammoth(cls, file_path: str, save_markdown: bool = True, save_artifacts: bool = True, artifacts_folder: str = "artifacts") -> str:
@@ -19,7 +19,7 @@ class DocxLoaderWithArtifacts:
         :param artifacts_folder: Directory to save extracted artifacts.
         :return: Extracted text as a string (Markdown format).
         """
-        # Create artifacts directory if not exists
+        # Create artifacts directory if it doesn't exist
         if save_artifacts and not os.path.exists(artifacts_folder):
             os.makedirs(artifacts_folder)
         
@@ -35,7 +35,7 @@ class DocxLoaderWithArtifacts:
                 artifact_count += 1
                 # Save image as file
                 artifact_data = base64.b64decode(artifact)
-                artifact_file_path = os.path.join(artifacts_folder, f"image_{artifact_count}.png")
+                artifact_file_path = os.path.join(artifacts_folder, f"artifact_{artifact_count}.png")
                 
                 with open(artifact_file_path, "wb") as f:
                     f.write(artifact_data)
@@ -60,7 +60,7 @@ class DocxLoaderWithArtifacts:
         :param save_artifacts: If True, saves extracted artifacts (images) to a folder.
         """
         # Extract text and artifacts using mammoth
-        extracted_text = DocxLoaderWithArtifacts.from_mammoth(
+        extracted_text = DocxLoaderComparison.from_mammoth(
             file_path,
             save_markdown=save_markdown,
             save_artifacts=save_artifacts
