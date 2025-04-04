@@ -30,17 +30,27 @@ class DocxLoaderComparison:
             # Extract base64 encoded images using regex
             artifact_count = 0
             artifacts = re.findall(r'!\[.*?\]\(data:image\/.*?;base64,(.*?)\)', extracted_text)
+            artifact_placeholders = []
 
             for artifact in artifacts:
                 artifact_count += 1
                 # Save image as file
                 artifact_data = base64.b64decode(artifact)
-                artifact_file_path = os.path.join(artifacts_folder, f"artifact_{artifact_count}.png")
+                artifact_file_name = f"artifact_{artifact_count}.png"
+                artifact_file_path = os.path.join(artifacts_folder, artifact_file_name)
                 
                 with open(artifact_file_path, "wb") as f:
                     f.write(artifact_data)
 
                 print(f"Saved artifact: {artifact_file_path}")
+                
+                # Create placeholder text for the image
+                placeholder_text = f"![IMAGE_{artifact_count}]({artifact_file_name})"
+                artifact_placeholders.append((artifact, placeholder_text))
+            
+            # Replace base64 image strings with placeholders in the Markdown content
+            for base64_str, placeholder in artifact_placeholders:
+                extracted_text = extracted_text.replace(base64_str, placeholder)
 
             # Optionally save the markdown file
             if save_markdown:
