@@ -1,95 +1,65 @@
 import time
 from typing import Union
-from docx import Document as DocxDocument
-from langchain.document_loaders import UnstructuredMammothLoader
-from langchain.schema import Document
-import tempfile
 import mammoth
 
 
 class DocxLoaderComparison:
 
     @classmethod
-    def from_langchain_loader(cls, file_path: str) -> list[Document]:
+    def from_mammoth(cls, file_path: str) -> str:
         """
-        Load a .docx file using LangChain's UnstructuredMammothLoader.
+        Load a .docx file using Mammoth.
 
         :param file_path: Path to the .docx file.
-        :return: List of LangChain Document objects.
+        :return: Extracted text as a string (Markdown format).
         """
-        loader = UnstructuredMammothLoader(file_path)
-        return loader.load()
-
-    @classmethod
-    def from_custom_loader(cls, file_path: str, markdown: bool = True) -> str:
-        """
-        Load a .docx file using custom loader with python-docx and mammoth.
-
-        :param file_path: Path to the .docx file.
-        :param markdown: Whether to extract markdown using mammoth or plain text.
-        :return: Extracted text as a string.
-        """
-        if markdown:
-            with open(file_path, "rb") as docx_file:
-                result = mammoth.convert_to_markdown(docx_file)
-                return result.value  # Returns markdown-formatted text
-
-        # Using python-docx for text extraction
-        doc = DocxDocument(file_path)
-        text_content = []
-
-        for para in doc.paragraphs:
-            if para.style.name.startswith('Heading'):
-                text_content.append(f"# {para.text}")  # Convert headings to Markdown style
-            else:
-                text_content.append(para.text)
-
-        return "\n\n".join(text_content)
+        with open(file_path, "rb") as docx_file:
+            result = mammoth.convert_to_markdown(docx_file)
+            return result.value  # Returns markdown-formatted text
 
     @staticmethod
     def compare_performance(file_path: str):
         """
-        Compare the performance of the LangChain loader vs. the custom loader.
+        Measure performance of mammoth loader.
 
         :param file_path: Path to the .docx file.
         """
-        # Measure performance of LangChain Loader
         start_time = time.time()
-        langchain_docs = DocxLoaderComparison.from_langchain_loader(file_path)
-        langchain_time = time.time() - start_time
+        mammoth_content = DocxLoaderComparison.from_mammoth(file_path)
+        mammoth_time = time.time() - start_time
 
-        # Measure performance of Custom Loader
-        start_time = time.time()
-        custom_content = DocxLoaderComparison.from_custom_loader(file_path)
-        custom_time = time.time() - start_time
-
-        print(f"\nLangChain Loader Time: {langchain_time:.4f} seconds")
-        print(f"Custom Loader Time: {custom_time:.4f} seconds")
+        print(f"\nMammoth Loader Time: {mammoth_time:.4f} seconds")
 
     @staticmethod
-    def compare_accuracy(file_path: str):
+    def evaluate_extraction(extracted_text: str, reference_text: str) -> float:
         """
-        Compare the accuracy of LangChain loader and custom loader.
+        Evaluate extraction accuracy using simple token overlap method.
+
+        :param extracted_text: Text extracted by the loader.
+        :param reference_text: Ground truth text for comparison.
+        :return: Similarity score (percentage).
+        """
+        extracted_tokens = set(extracted_text.split())
+        reference_tokens = set(reference_text.split())
+        intersection = extracted_tokens.intersection(reference_tokens)
+        similarity = len(intersection) / max(len(extracted_tokens), len(reference_tokens)) * 100
+
+        return similarity
+
+    @staticmethod
+    def run_evaluation(file_path: str, reference_text: str):
+        """
+        Run performance and accuracy evaluation on a given .docx file.
 
         :param file_path: Path to the .docx file.
+        :param reference_text: Reference text for accuracy comparison.
         """
-        # Extract text using both methods
-        langchain_docs = DocxLoaderComparison.from_langchain_loader(file_path)
-        custom_content = DocxLoaderComparison.from_custom_loader(file_path)
+        # Performance Check
+        DocxLoaderComparison.compare_performance(file_path)
 
-        # Combine all LangChain loader content
-        langchain_content = "\n\n".join([doc.page_content for doc in langchain_docs])
+        # Extraction
+        extracted_text = DocxLoaderComparison.from_mammoth(file_path)
 
-        print("\nLangChain Loader Output:")
-        print(langchain_content[:500])  # Print first 500 characters
-
-        print("\nCustom Loader Output:")
-        print(custom_content[:500])  # Print first 500 characters
-
-        # Check similarity (simple token match)
-        langchain_tokens = set(langchain_content.split())
-        custom_tokens = set(custom_content.split())
-        intersection = langchain_tokens.intersection(custom_tokens)
-        similarity = len(intersection) / max(len(langchain_tokens), len(custom_tokens)) * 100
-
-        print(f"\nSimilarity Score: {similarity:.2f}%")
+        # Accuracy Check
+        similarity_score = DocxLoaderComparison.evaluate_extraction(extracted_text, reference_text)
+        print(f"\nSimilarity Score: {similarity_score:.2f}%")
