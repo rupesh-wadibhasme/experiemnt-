@@ -1,7 +1,7 @@
 import time
 from typing import Union
 from docx import Document as DocxDocument
-from langchain.document_loaders import DocxLoader
+from langchain.document_loaders import UnstructuredMammothLoader
 from langchain.schema import Document
 import tempfile
 import mammoth
@@ -12,12 +12,12 @@ class DocxLoaderComparison:
     @classmethod
     def from_langchain_loader(cls, file_path: str) -> list[Document]:
         """
-        Load a .docx file using LangChain's DocxLoader.
+        Load a .docx file using LangChain's UnstructuredMammothLoader.
 
         :param file_path: Path to the .docx file.
         :return: List of LangChain Document objects.
         """
-        loader = DocxLoader(file_path)
+        loader = UnstructuredMammothLoader(file_path)
         return loader.load()
 
     @classmethod
@@ -93,4 +93,3 @@ class DocxLoaderComparison:
         similarity = len(intersection) / max(len(langchain_tokens), len(custom_tokens)) * 100
 
         print(f"\nSimilarity Score: {similarity:.2f}%")
-
