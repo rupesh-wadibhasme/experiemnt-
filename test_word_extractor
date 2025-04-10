@@ -1,7 +1,12 @@
 import os
 import unittest
 from backend.chatbot import TextExtractorDOCX
-from backend.file_object import FileObject  # Use your actual FileObject class or mock if needed
+
+
+class FileObject:
+    """Minimal mock of FileObject for testing."""
+    def __init__(self, url):
+        self.url = url
 
 class TestTextExtractorDOCX(unittest.TestCase):
     def setUp(self):
@@ -12,20 +17,23 @@ class TestTextExtractorDOCX(unittest.TestCase):
         self.file_obj = FileObject(self.sample_file)
 
     def test_returns_markdown_string(self):
-        """Should return a single markdown string in a list."""
+        """Should return a list with one non-empty markdown string."""
         output = self.extractor.extract(self.file_obj)
         self.assertIsInstance(output, list)
         self.assertEqual(len(output), 1)
         self.assertIsInstance(output[0], str)
         self.assertGreater(len(output[0]), 0)
 
-    def test_heading_structure_exists(self):
-        """Output should include markdown-style headings."""
+    def test_preserves_heading_markers(self):
+        """Should include markdown-style headings (e.g., '#')."""
         output = self.extractor.extract(self.file_obj)
         self.assertIn("#", output[0])
 
-    def test_supports_method(self):
-        """Supports method should return True for .docx files only."""
-        self.assertTrue(self.extractor.supports("file.docx"))
-        self.assertFalse(self.extractor.supports("file.pdf"))
-        self.assertFalse(self.extractor.supports("file.txt"))
+    def test_supports_docx_extension(self):
+        """Should support only .docx files."""
+        self.assertTrue(self.extractor.supports("sample.docx"))
+        self.assertFalse(self.extractor.supports("sample.txt"))
+        self.assertFalse(self.extractor.supports("sample.pdf"))
+
+if __name__ == '__main__':
+    unittest.main()
