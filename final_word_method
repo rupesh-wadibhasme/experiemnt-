@@ -1,0 +1,73 @@
+import re
+from docx import Document
+
+class Chat:
+    # ... your other methods ...
+
+    @staticmethod
+    def _build_runs(runs) -> str:
+        """
+        Convert runs into a Markdown-formatted string,
+        preserving basic styling such as bold and italic.
+        """
+        segments = []
+        for run in runs:
+            text_segment = run.text
+            if run.bold and run.italic:
+                text_segment = f"***{text_segment}***"
+            elif run.bold:
+                text_segment = f"**{text_segment}**"
+            elif run.italic:
+                text_segment = f"*{text_segment}*"
+            segments.append(text_segment)
+        return "".join(segments)
+
+    @staticmethod
+    def _get_heading_level(style_name: str) -> int:
+        """
+        Extracts the heading level from style names like 'Heading 1', 'Heading 2', etc.
+        Defaults to 1 if no number is found.
+        """
+        match = re.search(r"(\d+)$", style_name)
+        if match:
+            return int(match.group(1))
+        return 1
+
+    @classmethod
+    def from_python_docx(cls, file_path: str, save_markdown: bool = False) -> str:
+        """
+        Load a .docx file using python-docx, returning Markdown-like structured text.
+
+        - Converts headings: "Heading 1" becomes "# Heading text", etc.
+        - Preserves styling (bold, italic) using Markdown syntax.
+        
+        :param file_path: Path to the .docx file.
+        :param save_markdown: If True, saves the output as 'python_docx_output.md'
+        :return: Extracted text in Markdown format.
+        """
+        doc = Document(file_path)
+        lines = []
+
+        for para in doc.paragraphs:
+            # Combine all runs with styling preserved
+            content = cls._build_runs(para.runs)
+            style_name = para.style.name
+
+            if style_name.lower().startswith("heading"):
+                level = cls._get_heading_level(style_name)
+                # Cap to Markdown maximum level of 6
+                level = min(level, 6)
+                line = f"{'#' * level} {content.strip()}"
+            else:
+                line = content.strip()
+
+            lines.append(line)
+
+        markdown_text = "\n\n".join(lines)
+
+        if save_markdown:
+            with open("python_docx_output.md", "w", encoding="utf-8") as f:
+                f.write(markdown_text)
+            print("python-docx output saved as 'python_docx_output.md'")
+        
+        return markdown_text
