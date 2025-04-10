@@ -1,31 +1,31 @@
 import os
 import unittest
-from backend.chatbot import TextExtractorDOCX  # Adjust import path if needed
-from backend.file_object import FileObject     # Assuming FileObject is defined like in other extractors
-
+from backend.chatbot import TextExtractorDOCX
+from backend.file_object import FileObject  # Use your actual FileObject class or mock if needed
 
 class TestTextExtractorDOCX(unittest.TestCase):
     def setUp(self):
-        self.sample_file_path = "sample.docx"
+        self.sample_file = "sample.docx"
+        if not os.path.exists(self.sample_file):
+            self.skipTest("sample.docx not found. Please add a test document.")
         self.extractor = TextExtractorDOCX()
-        if not os.path.exists(self.sample_file_path):
-            self.skipTest("sample.docx not found in the project root. Please add a test document.")
-        self.file_obj = FileObject(self.sample_file_path)
+        self.file_obj = FileObject(self.sample_file)
 
-    def test_supports_docx_file(self):
-        self.assertTrue(self.extractor.supports("document.docx"))
-        self.assertFalse(self.extractor.supports("document.pdf"))
-        self.assertFalse(self.extractor.supports("document.yaml"))
+    def test_returns_markdown_string(self):
+        """Should return a single markdown string in a list."""
+        output = self.extractor.extract(self.file_obj)
+        self.assertIsInstance(output, list)
+        self.assertEqual(len(output), 1)
+        self.assertIsInstance(output[0], str)
+        self.assertGreater(len(output[0]), 0)
 
-    def test_extract_returns_single_chunk(self):
-        chunks = self.extractor.extract(self.file_obj)
-        self.assertIsInstance(chunks, list)
-        self.assertEqual(len(chunks), 1)
-        self.assertIsInstance(chunks[0], str)
-        self.assertGreater(len(chunks[0]), 0)
+    def test_heading_structure_exists(self):
+        """Output should include markdown-style headings."""
+        output = self.extractor.extract(self.file_obj)
+        self.assertIn("#", output[0])
 
-    def test_extract_contains_heading_markdown(self):
-        chunks = self.extractor.extract(self.file_obj)
-        content = chunks[0]
-        self.assertIn("#", content, "Expected markdown-style headings (e.g., '# Heading') in output")
-
+    def test_supports_method(self):
+        """Supports method should return True for .docx files only."""
+        self.assertTrue(self.extractor.supports("file.docx"))
+        self.assertFalse(self.extractor.supports("file.pdf"))
+        self.assertFalse(self.extractor.supports("file.txt"))
