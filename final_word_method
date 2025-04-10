@@ -1,14 +1,47 @@
-import re
+import os
+from typing import List
 from docx import Document
+import re
 
-class Chat:
-    # ... your other methods ...
+class TextExtractorDOCX(TextExtractor):
+    """
+    Extracts text from .docx (Word) files in one chunk,
+    preserving headings and basic formatting (bold/italic).
+    """
+
+    def supports(self, url: str) -> bool:
+        """
+        Check if the file has a .docx extension.
+        """
+        return url.lower().endswith(".docx")
+
+    def extract(self, file: FileObject) -> List[str]:
+        """
+        Extract content from the DOCX file and return it as a single Markdown-like string.
+        """
+        doc = Document(file.url)
+        lines = []
+
+        for para in doc.paragraphs:
+            content = self._build_runs(para.runs)
+            style_name = para.style.name
+
+            if style_name.lower().startswith("heading"):
+                level = self._get_heading_level(style_name)
+                level = min(level, 6)
+                line = f"{'#' * level} {content.strip()}"
+            else:
+                line = content.strip()
+
+            lines.append(line)
+
+        markdown_text = "\n\n".join(lines)
+        return [markdown_text]  # Return as a list of one "chunk"
 
     @staticmethod
     def _build_runs(runs) -> str:
         """
-        Convert runs into a Markdown-formatted string,
-        preserving basic styling such as bold and italic.
+        Preserve basic formatting (bold/italic) in Markdown style.
         """
         segments = []
         for run in runs:
@@ -25,49 +58,7 @@ class Chat:
     @staticmethod
     def _get_heading_level(style_name: str) -> int:
         """
-        Extracts the heading level from style names like 'Heading 1', 'Heading 2', etc.
-        Defaults to 1 if no number is found.
+        Extracts heading level number from 'Heading 1', 'Heading 2', etc.
         """
         match = re.search(r"(\d+)$", style_name)
-        if match:
-            return int(match.group(1))
-        return 1
-
-    @classmethod
-    def from_python_docx(cls, file_path: str, save_markdown: bool = False) -> str:
-        """
-        Load a .docx file using python-docx, returning Markdown-like structured text.
-
-        - Converts headings: "Heading 1" becomes "# Heading text", etc.
-        - Preserves styling (bold, italic) using Markdown syntax.
-        
-        :param file_path: Path to the .docx file.
-        :param save_markdown: If True, saves the output as 'python_docx_output.md'
-        :return: Extracted text in Markdown format.
-        """
-        doc = Document(file_path)
-        lines = []
-
-        for para in doc.paragraphs:
-            # Combine all runs with styling preserved
-            content = cls._build_runs(para.runs)
-            style_name = para.style.name
-
-            if style_name.lower().startswith("heading"):
-                level = cls._get_heading_level(style_name)
-                # Cap to Markdown maximum level of 6
-                level = min(level, 6)
-                line = f"{'#' * level} {content.strip()}"
-            else:
-                line = content.strip()
-
-            lines.append(line)
-
-        markdown_text = "\n\n".join(lines)
-
-        if save_markdown:
-            with open("python_docx_output.md", "w", encoding="utf-8") as f:
-                f.write(markdown_text)
-            print("python-docx output saved as 'python_docx_output.md'")
-        
-        return markdown_text
+        return int(match.group(1)) if match else 1
