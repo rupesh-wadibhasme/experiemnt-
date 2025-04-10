@@ -1,0 +1,49 @@
+import os
+import unittest
+from chat import Chat  # Adjust this import if your Chat class is in a different module
+
+
+class TestChatFromDocx(unittest.TestCase):
+    def setUp(self):
+        # Set the path for your sample docx file.
+        # Ensure that sample.docx exists in the current working directory (or update the path accordingly).
+        self.sample_file = "sample.docx"
+        if not os.path.exists(self.sample_file):
+            self.skipTest("sample.docx not found; please provide a sample document for testing.")
+
+    def tearDown(self):
+        # Clean up the markdown output file if it exists
+        output_file = "python_docx_output.md"
+        if os.path.exists(output_file):
+            os.remove(output_file)
+
+    def test_from_python_docx_returns_string(self):
+        """Test that from_python_docx returns a non-empty string."""
+        output = Chat.from_python_docx(self.sample_file, save_markdown=False)
+        self.assertIsInstance(output, str)
+        self.assertGreater(len(output), 0, "Extracted text should not be empty.")
+
+    def test_from_python_docx_preserves_heading(self):
+        """
+        Test that the extraction function preserves headings.
+        This test assumes the sample document contains at least one heading.
+        """
+        output = Chat.from_python_docx(self.sample_file, save_markdown=False)
+        # A simple check: expecting at least one line starting with '#' for Markdown headings.
+        self.assertIn("#", output, "The output should contain Markdown heading markers.")
+
+    def test_save_markdown_creates_file(self):
+        """
+        Test that calling from_python_docx with save_markdown=True saves the file
+        and the file content matches the returned output.
+        """
+        output = Chat.from_python_docx(self.sample_file, save_markdown=True)
+        output_file = "python_docx_output.md"
+        self.assertTrue(os.path.exists(output_file), f"Markdown output file {output_file} should exist.")
+        with open(output_file, "r", encoding="utf-8") as f:
+            file_content = f.read()
+        self.assertEqual(output, file_content, "The returned output should match the saved file content.")
+
+
+if __name__ == '__main__':
+    unittest.main()
