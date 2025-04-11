@@ -1,24 +1,22 @@
 import os
+import re
 from typing import List
 from docx import Document
-import re
+from .types import TextChunk  # Update this import path based on where TextChunk is defined
 
 class TextExtractorDOCX(TextExtractor):
     """
     Extracts text from .docx (Word) files in one chunk,
-    preserving headings and basic formatting (bold/italic).
+    preserving headings and basic formatting (bold/italic),
+    and returns a TextChunk for downstream indexing.
     """
 
     def supports(self, url: str) -> bool:
-        """
-        Check if the file has a .docx extension.
-        """
+        """Check if the file has a .docx extension."""
         return url.lower().endswith(".docx")
 
-    def extract(self, file: FileObject) -> List[str]:
-        """
-        Extract content from the DOCX file and return it as a single Markdown-like string.
-        """
+    def extract(self, file: FileObject) -> List[TextChunk]:
+        """Extract content from DOCX and return it as a single TextChunk."""
         doc = Document(file.url)
         lines = []
 
@@ -36,13 +34,11 @@ class TextExtractorDOCX(TextExtractor):
             lines.append(line)
 
         markdown_text = "\n\n".join(lines)
-        return [markdown_text]  # Return as a list of one "chunk"
+        return [TextChunk(markdown_text, file.url, file.name)]  # 👈 wrapped in TextChunk
 
     @staticmethod
     def _build_runs(runs) -> str:
-        """
-        Preserve basic formatting (bold/italic) in Markdown style.
-        """
+        """Preserve basic formatting (bold/italic) in Markdown style."""
         segments = []
         for run in runs:
             text_segment = run.text
@@ -57,8 +53,6 @@ class TextExtractorDOCX(TextExtractor):
 
     @staticmethod
     def _get_heading_level(style_name: str) -> int:
-        """
-        Extracts heading level number from 'Heading 1', 'Heading 2', etc.
-        """
+        """Extracts heading level number from 'Heading 1', 'Heading 2', etc."""
         match = re.search(r"(\d+)$", style_name)
         return int(match.group(1)) if match else 1
