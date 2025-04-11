@@ -2,23 +2,41 @@ import os
 import unittest
 from backend.chatbot import TextExtractorDOCX, FileObject  # adjust paths
 
+# ✅ Minimal mock FileObject for testing
+class FileObject:
+    def __init__(self, path: str, content: bytes = None):
+        self.url = path
+        self.name = os.path.basename(path)
+        self.content = content  # Optional for future in-memory handling
+
+
 class TestTextExtractorDOCX(unittest.TestCase):
     def setUp(self):
-        self.sample_file = "sample.docx"
+        self.sample_file = "sample.docx"  # ← must exist in working dir
         if not os.path.exists(self.sample_file):
-            self.skipTest("sample.docx not found")
-        self.extractor = TextExtractorDOCX()
+            self.skipTest(f"Test file '{self.sample_file}' not found. Please place it in the root folder.")
         self.file = FileObject(self.sample_file)
+        self.extractor = TextExtractorDOCX()
 
     def test_extract_returns_textchunk(self):
         chunks = self.extractor.extract(self.file)
         self.assertIsInstance(chunks, list)
-        self.assertIsInstance(chunks[0].text, str)
+        self.assertGreater(len(chunks), 0)
+        self.assertTrue(hasattr(chunks[0], "text"))
         self.assertGreater(len(chunks[0].text), 0)
 
-    def test_heading_format(self):
+    def test_heading_is_preserved(self):
         chunks = self.extractor.extract(self.file)
-        self.assertIn("#", chunks[0].text)
+        self.assertIn("#", chunks[0].text, "Markdown heading (#) should be present in the output.")
+
+    def test_textchunk_metadata(self):
+        chunks = self.extractor.extract(self.file)
+        chunk = chunks[0]
+        self.assertEqual(chunk.url, self.file.url)
+        self.assertEqual(chunk.document_id, self.file.name)
+        self.assertEqual(chunk.relevance, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
+
