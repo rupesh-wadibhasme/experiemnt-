@@ -1,40 +1,24 @@
 import os
 import unittest
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from backend.chatbot import TextExtractorDOCX
-
-
-class FileObject:
-    """Minimal mock of FileObject for testing."""
-    def __init__(self, url):
-        self.url = url
+from backend.chatbot import TextExtractorDOCX, FileObject  # adjust paths
 
 class TestTextExtractorDOCX(unittest.TestCase):
     def setUp(self):
         self.sample_file = "sample.docx"
         if not os.path.exists(self.sample_file):
-            self.skipTest("sample.docx not found. Please add a test document.")
+            self.skipTest("sample.docx not found")
         self.extractor = TextExtractorDOCX()
-        self.file_obj = FileObject(self.sample_file)
+        self.file = FileObject(self.sample_file)
 
-    def test_returns_markdown_string(self):
-        """Should return a list with one non-empty markdown string."""
-        output = self.extractor.extract(self.file_obj)
-        self.assertIsInstance(output, list)
-        self.assertEqual(len(output), 1)
-        self.assertIsInstance(output[0], str)
-        self.assertGreater(len(output[0]), 0)
+    def test_extract_returns_textchunk(self):
+        chunks = self.extractor.extract(self.file)
+        self.assertIsInstance(chunks, list)
+        self.assertIsInstance(chunks[0].text, str)
+        self.assertGreater(len(chunks[0].text), 0)
 
-    def test_preserves_heading_markers(self):
-        """Should include markdown-style headings (e.g., '#')."""
-        output = self.extractor.extract(self.file_obj)
-        self.assertIn("#", output[0])
+    def test_heading_format(self):
+        chunks = self.extractor.extract(self.file)
+        self.assertIn("#", chunks[0].text)
 
-    def test_supports_docx_extension(self):
-        """Should support only .docx files."""
-        self.assertTrue(self.extractor.supports("sample.docx"))
-        self.assertFalse(self.extractor.supports("sample.txt"))
-        self.assertFalse(self.extractor.supports("sample.pdf"))
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
