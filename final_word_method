@@ -4,55 +4,51 @@ from typing import List
 from docx import Document
 from .types import TextChunk  # Update this import path based on where TextChunk is defined
 
-class TextExtractorDOCX(TextExtractor):
-    """
-    Extracts text from .docx (Word) files in one chunk,
-    preserving headings and basic formatting (bold/italic),
-    and returns a TextChunk for downstream indexing.
-    """
+import re
+from docx import Document
+from typing import List
 
+class TextExtractorDOCX(TextExtractor):
     def supports(self, url: str) -> bool:
-        """Check if the file has a .docx extension."""
         return url.lower().endswith(".docx")
 
     def extract(self, file: FileObject) -> List[TextChunk]:
-        """Extract content from DOCX and return it as a single TextChunk."""
-        doc = Document(file.url)
-        lines = []
+        def load(path: str) -> List[TextChunk]:
+            doc = Document(path)
+            lines: List[str] = []
 
-        for para in doc.paragraphs:
-            content = self._build_runs(para.runs)
-            style_name = para.style.name
+            def get_content(runs) -> str:
+                segments = []
+                for run in runs:
+                    seg = run.text
+                    if run.bold:
+                        seg = f"**{seg}**"
+                    if run.italic:
+                        seg = f"*{seg}*"
+                    segments.append(seg)
+                return "".join(segments)
 
-            if style_name.lower().startswith("heading"):
-                level = self._get_heading_level(style_name)
-                level = min(level, 6)
-                line = f"{'#' * level} {content.strip()}"
-            else:
-                line = content.strip()
+            def get_heading_level(style_name: str) -> int:
+                m = re.search(r"Heading\s+(\d+)\b", style_name, re.IGNORECASE)
+                return int(m.group(1)) if m else 1
 
-            lines.append(line)
+            for paragraph in doc.paragraphs:
+                txt = get_content(paragraph.runs).strip()
+                style = para.style.name or ""
 
-        markdown_text = "\n\n".join(lines)
-        return [TextChunk(markdown_text, file.url, file.name)]  # 👈 wrapped in TextChunk
+                if style.lower().startswith("heading"):
+                    lvl = min(get_heading_level(style), 6)
+                    lines.append(f"{'#' * lvl} {txt}")
+                else:
+                    if txt:
+                        lines.append(txt)
 
-    @staticmethod
-    def _build_runs(runs) -> str:
-        """Preserve basic formatting (bold/italic) in Markdown style."""
-        segments = []
-        for run in runs:
-            text_segment = run.text
-            if run.bold and run.italic:
-                text_segment = f"***{text_segment}***"
-            elif run.bold:
-                text_segment = f"**{text_segment}**"
-            elif run.italic:
-                text_segment = f"*{text_segment}*"
-            segments.append(text_segment)
-        return "".join(segments)
+            markdown = "\n\n".join(lines)
+            return [TextChunk(text=markdown, url=file.url, filename=file.name)]
 
-    @staticmethod
-    def _get_heading_level(style_name: str) -> int:
-        """Extracts heading level number from 'Heading 1', 'Heading 2', etc."""
-        match = re.search(r"(\d+)$", style_name)
-        return int(match.group(1)) if match else 1
+        return load(file.url)
+
+    def __call__(self, file: FileObject) -> List[TextChunk]:
+        if not self.supports(file.url):
+            raise ValueError(f"Unsupported file type: {file.url}")
+        return self.extract(file)
