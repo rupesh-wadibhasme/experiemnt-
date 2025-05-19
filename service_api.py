@@ -13,31 +13,49 @@ CHAT_METRICS_CONTAINER = "Chat_Session_Metrics"
 client = CosmosClient(CONFIG['DB_URL'], credential=CONFIG['DB_KEY'])
 
 # ---- Document Analytics ----
-def get_all_documents():
+def get_all_document_metrics(service_id=None, version=None):
     container = client.get_database_client(DB_NAME).get_container_client(DOCUMENT_METRICS_CONTAINER)
-    return list(container.read_all_items())
-
-def get_document_by_id(item_id):
-    container = client.get_database_client(DB_NAME).get_container_client(DOCUMENT_METRICS_CONTAINER)
-    query = f"SELECT * FROM c WHERE c.id = '{item_id}'"
+    query = "SELECT * FROM c"
+    if service_id and version:
+        query += f" WHERE c.service_id = '{service_id}' AND c.version = '{version}'"
     return list(container.query_items(query=query, enable_cross_partition_query=True))
 
-def get_documents_by_date(start, end):
+def get_document_metrics_by_name(document_name, service_id=None, version=None):
+    container = client.get_database_client(DB_NAME).get_container_client(DOCUMENT_METRICS_CONTAINER)
+    query = f"""
+    SELECT * FROM c
+    WHERE c.url LIKE '%{document_name}%'
+    """
+    if service_id and version:
+        query += f" AND c.service_id = '{service_id}' AND c.version = '{version}'"
+    return list(container.query_items(query=query, enable_cross_partition_query=True))
+
+def get_document_metrics_by_date(start, end, service_id=None, version=None):
     container = client.get_database_client(DB_NAME).get_container_client(DOCUMENT_METRICS_CONTAINER)
     query = f"""
     SELECT * FROM c
     WHERE c.timestamp >= '{start.isoformat()}' AND c.timestamp <= '{end.isoformat()}'
     """
+    if service_id and version:
+        query += f" AND c.service_id = '{service_id}' AND c.version = '{version}'"
     return list(container.query_items(query=query, enable_cross_partition_query=True))
 
 # ---- Chat Analytics ----
-def get_all_chat_sessions():
+def get_all_chat_sessions(service_id=None, version=None):
     container = client.get_database_client(DB_NAME).get_container_client(CHAT_METRICS_CONTAINER)
-    return list(container.read_all_items())
+    query = "SELECT * FROM c"
+    if service_id and version:
+        query += f" WHERE c.service_id = '{service_id}' AND c.version = '{version}'"
+    return list(container.query_items(query=query, enable_cross_partition_query=True))
 
-def get_chat_by_id(item_id):
+def get_chat_by_session_id(session_id, service_id=None, version=None):
     container = client.get_database_client(DB_NAME).get_container_client(CHAT_METRICS_CONTAINER)
-    query = f"SELECT * FROM c WHERE c.id = '{item_id}'"
+    query = f"""
+    SELECT * FROM c
+    WHERE c.session_id = '{session_id}'
+    """
+    if service_id and version:
+        query += f" AND c.service_id = '{service_id}' AND c.version = '{version}'"
     return list(container.query_items(query=query, enable_cross_partition_query=True))
 
 def summarize_chat_sessions(items):
