@@ -35,12 +35,19 @@ def document_metrics_route():
         return jsonify({"error": str(e)}), 500
 
 
-# ---- Route: Chat Session Summary ----
 @app.route("/chat-metrics", methods=["GET"])
 def chat_metrics_route():
     session_id = request.args.get("session_id")
     service_id = request.args.get("service_id")
     version = request.args.get("version")
+
+    # Optional validation
+    if session_id is not None and session_id.strip() == "":
+        return jsonify({"error": "Parameter 'session_id' cannot be empty."}), 400
+    if service_id is not None and service_id.strip() == "":
+        return jsonify({"error": "Parameter 'service_id' cannot be empty."}), 400
+    if version is not None and version.strip() == "":
+        return jsonify({"error": "Parameter 'version' cannot be empty."}), 400
 
     try:
         if session_id:
@@ -53,28 +60,6 @@ def chat_metrics_route():
 
         summary = svc.summarize_chat_sessions(data)
         return jsonify({"summary": summary, "data": data}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
-# ---- Route: Feedback Update ----
-@app.route("/feedback", methods=["POST"])
-def update_feedback_api():
-    """API endpoint to update feedback for a specific answer_id."""
-    params = request.json
-    session_id = params.get('session_id')
-    answer_id = params.get('answer_id')
-    feedback = params.get('feedback')
-
-    if session_id is None or answer_id is None or feedback is None:
-        return jsonify({"error": "Required parameters: session_id, answer_id, and feedback."}), 400
-
-    try:
-        svc.add_feedback(session_id, answer_id, feedback)
-        return jsonify({
-            'results': {
-                'session_id': session_id,
-                'answer_id': answer_id
-            }
-        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
