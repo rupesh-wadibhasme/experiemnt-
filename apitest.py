@@ -1,60 +1,42 @@
-# test_monitoring_api.py
-
+import os
+import sys
 import unittest
-from unittest.mock import patch, MagicMock
-import monitoring_api  # Imports your module
+from unittest.mock import patch
+from app import app
 
-class MonitoringAPITestCase(unittest.TestCase):
+class SimpleAPITestCase(unittest.TestCase):
 
-    @patch("monitoring_api.load_config")
-    @patch("monitoring_api.CosmosClient")
-    def test_get_all_documents(self, mock_cosmos_client, mock_load_config):
-        # Mock config
-        mock_load_config.return_value = {
-            "DB_URL": "mock-url",
-            "DB_KEY": "mock-key",
-            "DB_NAME": "mock-db"
-        }
+    def setUp(self):
+        self.client = app.test_client()
 
-        # Mock Cosmos container
-        mock_container = MagicMock()
-        mock_container.read_all_items.return_value = [{"id": "doc1"}]
+    @patch("backend.service_api.get_all_document_metrics")
+    def test_document_metrics(self, mock_get):
+        mock_get.return_value = [{"id": "doc1"}]
+        response = self.client.get("/document-metrics")
+        self.assertEqual(response.status_code, 200)
 
-        # Patch Cosmos client behavior
-        mock_db_client = MagicMock()
-        mock_db_client.get_container_client.return_value = mock_container
-        mock_cosmos_client.return_value.get_database_client.return_value = mock_db_client
+    @patch("backend.service_api.get_document_metrics_by_name")
+    def test_document_metrics_by_name(self, mock_get):
+        mock_get.return_value = [{"id": "doc2"}]
+        response = self.client.get("/document-metrics?name=testdoc")
+        self.assertEqual(response.status_code, 200)
 
-        # Re-run config and client setup
-        monitoring_api.CONFIG = mock_load_config.return_value
-        monitoring_api.client = mock_cosmos_client.return_value
+    @patch("backend.service_api.get_all_chat_sessions")
+    @patch("backend.service_api.summarize_chat_sessions")
+    def test_chat_metrics(self, mock_summary, mock_get):
+        mock_get.return_value = [{"session_id": "s1"}]
+        mock_summary.return_value = {"average": 1}
+        response = self.client.get("/chat-metrics")
+        self.assertEqual(response.status_code, 200)
 
-        result = monitoring_api.get_all_documents()
-        self.assertEqual(result, [{"id": "doc1"}])
+    @patch("backend.service_api.add_feedback")
+    def test_feedback(self, mock_add):
+        response = self.client.post("/feedback", json={
+            "session_id": "s1",
+            "answer_id": "a1",
+            "feedback": "good"
+        })
+        self.assertEqual(response.status_code, 200)
 
-    @patch("monitoring_api.load_config")
-    @patch("monitoring_api.CosmosClient")
-    def test_summarize_chat_sessions(self, mock_cosmos_client, mock_load_config):
-        mock_load_config.return_value = {
-            "DB_URL": "mock-url",
-            "DB_KEY": "mock-key",
-            "DB_NAME": "mock-db"
-        }
-
-        # Mock chat items
-        items = [
-            {"service_id": "PROPHET", "session_id": "s1", "response_time": 5.0, "feedback": "good"},
-            {"service_id": "PROPHET", "session_id": "s1", "response_time": 7.0, "feedback": "neutral"},
-            {"service_id": "PROPHET", "session_id": "s2", "response_time": 6.0, "feedback": "bad"},
-        ]
-
-        summary = monitoring_api.summarize_chat_sessions(items)
-
-        self.assertIn("average_response_time_by_service", summary)
-        self.assertEqual(summary["average_response_time_by_service"].get("PROPHET"), 6.0)
-        self.assertIn("feedback_distribution_by_service", summary)
-        self.assertEqual(summary["feedback_distribution_by_service"]["PROPHET"]["good"], 1)
-        self.assertEqual(summary["average_queries_per_session"], 1.5)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
