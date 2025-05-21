@@ -29,6 +29,20 @@ class SimpleAPITestCase(unittest.TestCase):
         response = self.client.get("/chat-metrics")
         self.assertEqual(response.status_code, 200)
 
+    @patch("backend.service_api.get_all_chat_sessions")
+    @patch("backend.service_api.summarize_chat_sessions")
+    def test_chat_metrics(self, mock_summary, mock_get):
+        mock_get.return_value = [{"session_id": "s1"}]  # Not empty
+        mock_summary.return_value = {
+            "average_response_time_by_service": {"PROPHET": 5.0},
+            "feedback_distribution_by_service": {"PROPHET": {"good": 1, "bad": 0, "neutral": 0, "none": 0}},
+            "average_queries_per_session": 1.0
+        }
+
+    response = self.client.get("/chat-metrics")
+    self.assertEqual(response.status_code, 200)
+
+
     @patch("backend.service_api.add_feedback")
     def test_feedback(self, mock_add):
         response = self.client.post("/feedback", json={
