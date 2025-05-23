@@ -1,0 +1,12 @@
+Median Absolute Deviation (MAD) Method:
+MAD is another robust measure of dispersion, defined as the median of the absolute deviations from the median: MAD = median(|Tdays – median(Tdays)|). 
+It is extremely resistant to outliers and is often used to identify anomalies. We can set a threshold based on the median and MAD as: Threshold = median + c · MAD, where c is a chosen constant. 
+For moderately conservative outlier detection, a common choice is c ≈ 3. For example, median ± 3·MAD often serves as a robust equivalent to the mean ± 2σ rule (covering ~95% if the data were normal)
+
+Interquartile Range (IQR) Method:
+The IQR is the range between the 25th percentile (Q1) and 75th percentile (Q3). Tukey’s rule for outliers uses the IQR to set “fences” beyond the typical range
+. We compute:
+IQR = Q3 – Q1.
+Upper Fence = Q3 + k · IQR, where k is a multiplier (Tukey’s classic choice is k = 1.5 for moderate outliers). 
+Any data point above this upper fence is considered an outlier (suspicious) for that group.
+Using k = 1.5 is a common default – it flags points beyond 1.5×IQR as outliers. However, in practice we can adjust k to meet our 95% coverage goal
