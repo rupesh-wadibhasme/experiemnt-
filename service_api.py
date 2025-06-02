@@ -85,3 +85,19 @@ def summarize_chat_sessions(items):
         "feedback_distribution_by_service": feedback_counts,
         "average_queries_per_session": avg_queries
     }
+
+def get_document_count_by_service_id():
+    container = client.get_database_client(DB_NAME).get_container_client(DOCUMENT_METRICS_CONTAINER)
+
+    # Query all service_id values
+    query = "SELECT c.service_id FROM c"
+    items = list(container.query_items(query=query, enable_cross_partition_query=True))
+
+    # Count how many times each service_id appears
+    counts = defaultdict(int)
+    for item in items:
+        service_id = item.get("service_id", "unknown")
+        counts[service_id] += 1
+
+    return dict(counts)
+
