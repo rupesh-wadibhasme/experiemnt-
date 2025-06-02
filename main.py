@@ -63,3 +63,12 @@ def chat_metrics_route():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/document-count-by-service", methods=["GET"])
+def document_count_by_service_route():
+    try:
+        data = svc.get_document_count_by_service_id()
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
