@@ -193,6 +193,49 @@ threshold = np.quantile(row_score, 0.98)
 anomaly_mask = row_score > threshold
 print(f"Anomalies detected: {anomaly_mask.sum()} / {len(row_score)}")
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ---------- EDIT HERE ----------
+# Provide your `row_score` 1-D NumPy array (one value per row).
+# Example: row_score = np.load("row_score.npy")
+# For demo purposes I'll create a fake distribution; replace this line.
+row_score = np.random.gamma(shape=2.0, scale=1.0, size=1000)
+# --------------------------------
+
+# 1. Sort reconstruction errors
+sorted_scores = np.sort(row_score)
+N = len(sorted_scores)
+
+# 2. 98th-percentile cutoff
+cutoff_idx   = int(np.ceil(0.98 * N)) - 1
+cutoff_score = sorted_scores[cutoff_idx]
+
+# 3. Simple "elbow" (largest jump) finder
+deltas       = np.diff(sorted_scores)
+elbow_idx    = np.argmax(deltas)
+elbow_score  = sorted_scores[elbow_idx]
+
+# 4. Plot: sorted reconstruction errors
+plt.figure()
+plt.plot(sorted_scores)
+plt.axvline(cutoff_idx, linestyle='--')
+plt.axhline(cutoff_score, linestyle='--')
+plt.title("Sorted Reconstruction Errors\n(dotted line = 98th percentile)")
+plt.xlabel("Row index (after sorting)")
+plt.ylabel("Reconstruction error")
+plt.tight_layout()
+
+# 5. Plot: consecutive gaps to visualise sudden jumps
+plt.figure()
+plt.plot(deltas)
+plt.axvline(elbow_idx, linestyle='--')
+plt.title("Gap between consecutive sorted errors\n(dotted line = largest jump)")
+plt.xlabel("Index (between i and i+1 in sorted list)")
+plt.ylabel("Error difference")
+plt.tight_layout()
+
+
 # 5-D.  Plot learning curves -------------------------------------------------
 block_names = [f"cat{i}" for i in range(len(cardinals))] + ["num"]
 plot_history(history.history, block_names)
