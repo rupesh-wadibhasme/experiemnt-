@@ -109,27 +109,27 @@ def build_embed_autoencoder(cardinals: List[int],
 # ────────────────────────────────────────────────────────────────────────────
 # 3. Error computation
 # ────────────────────────────────────────────────────────────────────────────
-def compute_errors(cat_true: List[np.ndarray],
-                   num_true: np.ndarray,
-                   recon: List[np.ndarray]) -> Tuple[List[np.ndarray], np.ndarray]:
+def compute_errors(cat_true, num_true, recon):
     """
     Returns:
-        err_groups – list of per-block error arrays (one per input block)
-        row_score  – scalar anomaly score per row (sum of all block errors)
+        err_groups – list of (N, k_i) arrays  (k_i = 1 for cats, num_dim for nums)
+        row_score  – (N,) overall anomaly score
     """
-    # categorical mismatch (0/1)
-    err_groups = [
-        (pred.argmax(-1) != true.squeeze()).astype("float32")
-        for pred, true in zip(recon[:-1], cat_true)
-    ]
-    # numeric squared error, z-scored feature-wise
+    err_groups = []
+
+    # ❶  categorical blocks: 0 / 1 mismatch, keep as (N,1)
+    for true, pred in zip(cat_true, recon[:-1]):
+        mismatch = (pred.argmax(-1) != true.squeeze()).astype("float32")[:, None]
+        err_groups.append(mismatch)                     # shape (N,1)
+
+    # ❷  numeric block: squared error → z-score, already (N,num_dim)
     num_err = (recon[-1] - num_true) ** 2
     num_err = (num_err - num_err.mean(0)) / (num_err.std(0) + 1e-9)
-    err_groups.append(num_err)
+    err_groups.append(num_err)                         # shape (N,7)
 
+    # ❸  concatenate along feature axis, then sum to one scalar per row
     row_score = np.concatenate(err_groups, axis=1).sum(1)
     return err_groups, row_score
-
 
 # ────────────────────────────────────────────────────────────────────────────
 # 4. Training-history plots
