@@ -152,6 +152,53 @@ def plot_history(hist: dict, block_names: List[str]):
             plt.plot(hist[va], label="val")
             plt.title(name); plt.legend(); plt.show()
 
+#------------------
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_sorted_errors(row_score, top_fraction=0.02, show_gaps=True):
+    """
+    row_score    – 1-D array of reconstruction errors (one per row)
+    top_fraction – 0.02 ⇒ top-2 %; 0.01 ⇒ top-1 %; etc.
+    show_gaps    – set False if you only want the main curve
+    """
+    # 1. sort the errors
+    sorted_scores = np.sort(row_score)
+    N             = len(sorted_scores)
+
+    # 2. percentile cutoff
+    cutoff_idx   = int(np.ceil((1 - top_fraction) * N)) - 1
+    cutoff_score = sorted_scores[cutoff_idx]
+
+    # 3. optional “largest gap” (elbow) finder
+    deltas      = np.diff(sorted_scores)
+    elbow_idx   = np.argmax(deltas)
+    elbow_score = sorted_scores[elbow_idx]
+
+    # 4. PLOT — sorted errors
+    plt.figure(figsize=(7, 4))
+    plt.plot(sorted_scores, lw=2, label="sorted error")
+    plt.axvline(cutoff_idx,  ls="--", color="tab:orange",
+                label=f"{100*(1-top_fraction):.0f}th-percentile")
+    plt.axhline(cutoff_score, ls="--", color="tab:orange")
+    plt.title("Sorted Reconstruction Errors")
+    plt.xlabel("Row index (after sorting)")
+    plt.ylabel("Reconstruction error")
+    plt.legend(); plt.tight_layout(); plt.show()
+
+    # 5. PLOT — consecutive gaps (optional)
+    if show_gaps:
+        plt.figure(figsize=(7, 3))
+        plt.plot(deltas, lw=2, label="error difference i→i+1")
+        plt.axvline(elbow_idx, ls="--", color="tab:red",
+                    label="largest jump (elbow)")
+        plt.title("Gap between consecutive sorted errors")
+        plt.xlabel("Index (between i and i+1)")
+        plt.ylabel("Δ error")
+        plt.legend(); plt.tight_layout(); plt.show()
+
+    return cutoff_score, cutoff_idx, elbow_score, elbow_idx
+
 
 # ────────────────────────────────────────────────────────────────────────────
 # 5. Main pipeline (wrap in `if __name__ == "__main__":` if desired)
@@ -193,47 +240,16 @@ threshold = np.quantile(row_score, 0.98)
 anomaly_mask = row_score > threshold
 print(f"Anomalies detected: {anomaly_mask.sum()} / {len(row_score)}")
 
-import numpy as np
-import matplotlib.pyplot as plt
+# `row_score` is produced right after compute_errors(...)
+cutoff_score, cutoff_idx, elbow_score, elbow_idx = plot_sorted_errors(
+        row_score,
+        top_fraction=0.01      # ← 0.01 for top-1 %; change to 0.02 for top-2 %
+)
 
-# ---------- EDIT HERE ----------
-# Provide your `row_score` 1-D NumPy array (one value per row).
-# Example: row_score = np.load("row_score.npy")
-# For demo purposes I'll create a fake distribution; replace this line.
-row_score = np.random.gamma(shape=2.0, scale=1.0, size=1000)
-# --------------------------------
-
-# 1. Sort reconstruction errors
-sorted_scores = np.sort(row_score)
-N = len(sorted_scores)
-
-# 2. 98th-percentile cutoff
-cutoff_idx   = int(np.ceil(0.98 * N)) - 1
-cutoff_score = sorted_scores[cutoff_idx]
-
-# 3. Simple "elbow" (largest jump) finder
-deltas       = np.diff(sorted_scores)
-elbow_idx    = np.argmax(deltas)
-elbow_score  = sorted_scores[elbow_idx]
-
-# 4. Plot: sorted reconstruction errors
-plt.figure()
-plt.plot(sorted_scores)
-plt.axvline(cutoff_idx, linestyle='--')
-plt.axhline(cutoff_score, linestyle='--')
-plt.title("Sorted Reconstruction Errors\n(dotted line = 98th percentile)")
-plt.xlabel("Row index (after sorting)")
-plt.ylabel("Reconstruction error")
-plt.tight_layout()
-
-# 5. Plot: consecutive gaps to visualise sudden jumps
-plt.figure()
-plt.plot(deltas)
-plt.axvline(elbow_idx, linestyle='--')
-plt.title("Gap between consecutive sorted errors\n(dotted line = largest jump)")
-plt.xlabel("Index (between i and i+1 in sorted list)")
-plt.ylabel("Error difference")
-plt.tight_layout()
+# flag anomalies
+anomaly_mask = row_score > cutoff_score
+print(f"Flagged {anomaly_mask.sum()} / {len(row_score)} rows "
+      f"(top {100*0.01:.0f} %).")
 
 
 # 5-D.  Plot learning curves -------------------------------------------------
