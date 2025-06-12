@@ -214,17 +214,36 @@ numeric_block_idx = 7                   # keep if block 7 is the numeric one
 
 # ▼▼▼  NEW: stratify on cat2 & cat3  ▼▼▼
 from sklearn.model_selection import train_test_split
+import numpy as np
 
-idx = np.arange(len(blocks[0]))         # row indices
-cat2_lbl = blocks[2].values.argmax(1)   # integer label for cat2
-cat3_lbl = blocks[3].values.argmax(1)   # integer label for cat3
-combo    = cat2_lbl * 1000 + cat3_lbl   # composite label
+idx        = np.arange(len(blocks[0]))
+cat2_lbl   = blocks[2].values.argmax(1)
+cat3_lbl   = blocks[3].values.argmax(1)
+combo_lbl  = cat2_lbl * 1000 + cat3_lbl
 
-train_idx, val_idx = train_test_split(
-        idx,
-        test_size=0.25,
-        random_state=42,
-        stratify=combo)                  # ⇐ guarantees every (cat2,cat3) combo appears in both splits
+# 1️⃣  count occurrences per combo
+combo_counts = np.bincount(combo_lbl)
+rare_mask    = combo_counts[combo_lbl] < 2     # rows whose combo appears < 2×
+
+# 2️⃣  always put rare rows into train set
+common_idx   = idx[~rare_mask]                 # safe to stratify
+rare_idx     = idx[rare_mask]                  # will stay in train
+
+# 3️⃣  stratified split on the common part only
+tr_c, va_c = train_test_split(
+    common_idx,
+    test_size=0.25,
+    random_state=42,
+    stratify=combo_lbl[common_idx]
+)
+
+# 4️⃣  final indices
+train_idx = np.concatenate([tr_c, rare_idx])   # train = common-train + all rare
+val_idx   = va_c                               # validation = common-val only
+
+print(f"Train rows: {len(train_idx):,}  |  Val rows: {len(val_idx):,}"
+      f"  |  Rare rows forced to train: {len(rare_idx)}")
+
 
 train_blocks = [df.iloc[train_idx].reset_index(drop=True) for df in blocks]
 val_blocks   = [df.iloc[val_idx]  .reset_index(drop=True) for df in blocks]
