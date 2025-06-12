@@ -18,3 +18,19 @@ for i, (k, d) in enumerate(zip(cardinals, embed_dims)):
 
     cat_inputs.append(inp)
     cat_embeds.append(layers.Flatten()(emb))
+
+
+'''
+# 5-C.  Reconstruction & anomaly scores ─────────────────────────────
+# Build inputs from the ENTIRE dataset (train + val) so shapes match
+cat_all, num_all, _, _ = prepare_blocks(blocks, numeric_block_idx)
+inputs_all = cat_all + [num_all]          # len == 7 → matches model.inputs
+
+# Predict
+recon = model.predict(inputs_all, batch_size=512, verbose=0)
+
+# Compute errors
+err_groups, row_score = compute_errors(cat_all, num_all, recon)
+
+
+'''
