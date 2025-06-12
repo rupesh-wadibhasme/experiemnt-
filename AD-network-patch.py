@@ -33,7 +33,10 @@ recon = model.predict(inputs_all, batch_size=512, verbose=0)
 err_groups, row_score = compute_errors(cat_all, num_all, recon)
 
 
+
 '''
+
+
 def build_anomaly_pair(train_blocks,
                        train_idx,
                        row_score_train,
@@ -64,6 +67,26 @@ def build_anomaly_pair(train_blocks,
 # row_score_train was produced via:
 # recon_tr  = model.predict(inputs_tr, ...)
 # err_grp_tr, row_score_train = compute_errors(cat_arrays_tr, num_array_tr, recon_tr)
+
+# ─── 6.  Save elbow-anomalies for downstream steps ─────────────────────────
+
+# 6-A.  Build the full DataFrame (all original columns side-by-side)
+df_full = pd.concat(blocks, axis=1).reset_index(drop=True)
+
+# 6-B.  Add the reconstruction-loss column you just computed
+df_full["reconstruction_loss"] = row_score
+
+# 6-C.  Filter rows above the elbow threshold
+elbow_mask    = row_score > elbow_score          # ← elbow_score from earlier
+df_anomalies  = df_full.loc[elbow_mask].copy()
+
+print(f"Rows flagged by elbow: {len(df_anomalies):,}")
+
+# 6-D.  Persist the result
+df_anomalies.to_csv("elbow_anomaly_rows.csv", index=False)
+print("Saved → elbow_anomaly_rows.csv")
+
+
 
 anom_list = build_anomaly_pair(
                 train_blocks=train_blocks,
