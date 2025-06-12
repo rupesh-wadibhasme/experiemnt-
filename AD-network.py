@@ -208,15 +208,43 @@ def plot_sorted_errors(row_score, top_fraction=0.02, show_gaps=True):
 # blocks = [df0, df1, df2, df3, df4, df5, df6, df7]  # supply these yourself
 numeric_block_idx = 7                                # adjust if needed
 
-# prepare
-cat_arrays, num_array, cardinals, embed_dims = prepare_blocks(
-    blocks, numeric_block_idx
-)
-inputs  = cat_arrays + [num_array]
-targets = inputs  # auto-encoder
+# 5-A.  Your data ------------------------------------------------------------
+# blocks = [...]  # your list of 8 DataFrames  (cat0 … cat6, numerics)
+numeric_block_idx = 7                   # keep if block 7 is the numeric one
+
+# ▼▼▼  NEW: stratify on cat2 & cat3  ▼▼▼
+from sklearn.model_selection import train_test_split
+
+idx = np.arange(len(blocks[0]))         # row indices
+cat2_lbl = blocks[2].values.argmax(1)   # integer label for cat2
+cat3_lbl = blocks[3].values.argmax(1)   # integer label for cat3
+combo    = cat2_lbl * 1000 + cat3_lbl   # composite label
+
+train_idx, val_idx = train_test_split(
+        idx,
+        test_size=0.25,
+        random_state=42,
+        stratify=combo)                  # ⇐ guarantees every (cat2,cat3) combo appears in both splits
+
+train_blocks = [df.iloc[train_idx].reset_index(drop=True) for df in blocks]
+val_blocks   = [df.iloc[val_idx]  .reset_index(drop=True) for df in blocks]
+# ▲▲▲  END new code  ▲▲▲
+
+# prepare ⇢ TRAIN
+cat_arrays_tr, num_array_tr, cardinals, embed_dims = prepare_blocks(
+        train_blocks, numeric_block_idx)
+inputs_tr  = cat_arrays_tr + [num_array_tr]
+targets_tr = inputs_tr
+
+# prepare ⇢ VALIDATION
+cat_arrays_va, num_array_va, _, _ = prepare_blocks(
+        val_blocks, numeric_block_idx)
+inputs_va  = cat_arrays_va + [num_array_va]
+targets_va = inputs_va
 
 # 5-B.  Build & train --------------------------------------------------------
-model = build_embed_autoencoder(cardinals, num_dim=num_array.shape[1],
+model = build_embed_autoencoder(cardinals,
+                                num_dim=num_array_tr.shape[1],
                                 embed_dims=embed_dims,
                                 hid=64, bottleneck=32, dropout=0.15)
 
@@ -224,12 +252,13 @@ early_stop = keras.callbacks.EarlyStopping(monitor="val_loss",
                                            patience=20,
                                            restore_best_weights=True)
 
-history = model.fit(inputs, targets,
-                    validation_split=0.25,
+history = model.fit(inputs_tr, targets_tr,                 # ← train data
+                    validation_data=(inputs_va, targets_va),  # ← val data
                     epochs=200,
                     batch_size=128,
                     callbacks=[early_stop],
                     verbose=2)
+
 
 # 5-C.  Reconstruction & anomaly scores -------------------------------------
 recon = model.predict(inputs, batch_size=512, verbose=0)
