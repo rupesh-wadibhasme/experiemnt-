@@ -37,65 +37,29 @@ err_groups, row_score = compute_errors(cat_all, num_all, recon)
 '''
 
 
-def build_anomaly_pair(train_blocks,
-                       train_idx,
-                       row_score_train,
-                       elbow_score,
-                       loss_col="recon_loss"):
-    """
-    Returns
-    -------
-    [ df_anom, df_train_orig ]  (both pandas DataFrames)
-        df_anom        – rows whose reconstruction error > elbow_score,
-                          plus a new column `recon_loss`
-        df_train_orig  – the full training-set DataFrame (no loss column)
-    """
-    # 1️⃣  stitch the training blocks back together
-    df_train_orig = pd.concat(train_blocks, axis=1).reset_index(drop=True)
+# ─── 1.  elbow score ────────────────────────────────────────────────
+sorted_scores = np.sort(row_score)
+deltas        = np.diff(sorted_scores)
+elbow_idx     = np.argmax(deltas)
+elbow_score   = sorted_scores[elbow_idx]
 
-    # 2️⃣  find which training rows exceed the elbow
-    anom_mask = row_score_train > elbow_score
-    df_anom   = df_train_orig.loc[anom_mask].copy()
-    df_anom[loss_col] = row_score_train[anom_mask]
+print(f"Elbow at index {elbow_idx:,}  →  score {elbow_score:.6f}")
 
-    print(f"Anomalies in train split: {len(df_anom):,} "
-          f"out of {len(df_train_orig):,} rows")
+# ─── 2.  mask of rows above elbow ───────────────────────────────────
+elbow_mask = row_score > elbow_score
+print(f"Rows flagged as anomalies: {elbow_mask.sum():,} "
+      f"({100*elbow_mask.mean():.2f} % of dataset)")
 
-    return [df_anom, df_train_orig]
+# ─── 3.  rebuild full DataFrame ─────────────────────────────────────
+df_all  = pd.concat(blocks, axis=1).reset_index(drop=True)     # original cols
+df_anom = df_all.loc[elbow_mask].copy()                        # subset
 
+# attach the loss column only to the anomaly DF
+df_anom["reconstruction_loss"] = row_score[elbow_mask]
 
-# row_score_train was produced via:
-# recon_tr  = model.predict(inputs_tr, ...)
-# err_grp_tr, row_score_train = compute_errors(cat_arrays_tr, num_array_tr, recon_tr)
+# ─── 4.  save and/or return ─────────────────────────────────────────
+df_anom.to_csv("elbow_anomalies.csv", index=False)
+print("Saved → elbow_anomalies.csv")
 
-# ─── 6.  Save elbow-anomalies for downstream steps ─────────────────────────
-
-# 6-A.  Build the full DataFrame (all original columns side-by-side)
-df_full = pd.concat(blocks, axis=1).reset_index(drop=True)
-
-# 6-B.  Add the reconstruction-loss column you just computed
-df_full["reconstruction_loss"] = row_score
-
-# 6-C.  Filter rows above the elbow threshold
-elbow_mask    = row_score > elbow_score          # ← elbow_score from earlier
-df_anomalies  = df_full.loc[elbow_mask].copy()
-
-print(f"Rows flagged by elbow: {len(df_anomalies):,}")
-
-# 6-D.  Persist the result
-df_anomalies.to_csv("elbow_anomaly_rows.csv", index=False)
-print("Saved → elbow_anomaly_rows.csv")
-
-
-
-anom_list = build_anomaly_pair(
-                train_blocks=train_blocks,
-                train_idx=train_idx,
-                row_score_train=row_score_train,
-                elbow_score=elbow_score,   # from the earlier elbow calc
-            )
-
-df_anom, df_train_orig = anom_list        # unpack if you like
-
-# Optional: save just the anomalies
-df_anom.to_csv("train_elbow_anomalies.csv", index=False)
+# pack both frames in a list for downstream use
+anom_bundle = [df_anom, df_all]    # anom_bundle[0] = anomalies, [1] = original
