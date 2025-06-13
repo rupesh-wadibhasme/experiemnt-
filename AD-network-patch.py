@@ -76,57 +76,58 @@ def scale(df, scaler=None):
 
 
 
-# ------------------------------------------------------------------
-# Re-build two reconstructed DataFrames
-#   • df_recon_1hot  – cats as one-hot 0/1, numeric in ORIGINAL units
-#   • df_recon_prob  – cats as soft-max probabilities, numeric in ORIGINAL units
-# ------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Build reconstructed DataFrames and *then* inverse-transform
+#   specified numeric columns with a single MinMaxScaler.
+# ----------------------------------------------------------------------
 def build_reconstructed_dataframes(blocks,
                                    recon,
-                                   numeric_block_idx=6,
-                                   num_scaler=None):
+                                   numeric_block_idx,
+                                   numeric_cols: list,
+                                   num_scaler):
     """
     Parameters
     ----------
     blocks             : list[pd.DataFrame]
     recon              : list[np.ndarray]  (model.predict output)
-    numeric_block_idx  : int               (position of numeric DF in blocks)
-    num_scaler         : fitted MinMaxScaler (or compatible) ―
-                         if provided, numeric block is inverse-transformed
-                         back to real units; otherwise stays scaled.
+    numeric_block_idx  : int   – position of the numeric DataFrame in blocks
+    numeric_cols       : list[str]  – column names to inverse-transform
+                                      (order must match scaler fitting order)
+    num_scaler         : fitted MinMaxScaler (trained on numeric_cols)
 
     Returns
     -------
-    df_recon_1hot, df_recon_prob   (pandas DataFrames)
+    df_recon_1hot : pandas DataFrame  – categorical 0/1, numerics inverse-scaled
+    df_recon_prob : pandas DataFrame  – categorical probabilities, numerics inverse-scaled
     """
-
     recon_1hot_blocks, recon_prob_blocks = [], []
-    r_iter = iter(recon)  # iterate over categorical heads in order
+    r_iter = iter(recon)                     # iterator over cat logits
 
     for i, df in enumerate(blocks):
         if i == numeric_block_idx:
-            # ---- numeric block ------------------------------------
-            num_pred = recon[-1]                          # ndarray (N, num_dim)
-            if num_scaler is not None:
-                num_pred = num_scaler.inverse_transform(num_pred)
-            num_pred_df = pd.DataFrame(num_pred, columns=df.columns)
-
-            recon_1hot_blocks.append(num_pred_df)
-            recon_prob_blocks.append(num_pred_df.copy())
-
+            # numeric block → add *scaled* for now
+            num_pred_scaled = pd.DataFrame(recon[-1], columns=df.columns)
+            recon_1hot_blocks.append(num_pred_scaled)
+            recon_prob_blocks.append(num_pred_scaled.copy())
         else:
-            # ---- categorical block -------------------------------
-            logits   = next(r_iter)                       # shape (N, k)
-            # one-hot (0/1) version
+            logits   = next(r_iter)
             preds    = logits.argmax(-1)
             one_hot  = np.eye(df.shape[1])[preds]
             cat_1hot = pd.DataFrame(one_hot, columns=df.columns).astype(int)
-            # probability version
-            cat_prob = pd.DataFrame(logits, columns=df.columns)
+            cat_prob = pd.DataFrame(logits,  columns=df.columns)
 
             recon_1hot_blocks.append(cat_1hot)
             recon_prob_blocks.append(cat_prob)
 
+    # --- concatenate blocks into full DataFrames (still scaled numerics) ----
     df_recon_1hot = pd.concat(recon_1hot_blocks, axis=1).reset_index(drop=True)
     df_recon_prob = pd.concat(recon_prob_blocks, axis=1).reset_index(drop=True)
-    return df_recon_1hot, df_recon_prob
+    df_original= pd.concat(blocks, axis=1).reset_index(drop=True)
+
+    # --- inverse-transform *only* the requested numeric columns -------------
+    for df_tmp in (df_recon_1hot, df_recon_prob,df_original):
+        scaled_vals = df_tmp[numeric_cols].values          # (N, num_dim)
+        raw_vals    = num_scaler.inverse_transform(scaled_vals)
+        df_tmp[numeric_cols] = raw_vals                    # overwrite in place
+
+    return df_recon_1hot, df_recon_prob,df_original
