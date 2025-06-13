@@ -75,40 +75,45 @@ def scale(df, scaler=None):
 
 
 
-# ------------------------------------------------------------------
-# Convert model outputs (recon) → DataFrame with original column names
-# ------------------------------------------------------------------
-def build_reconstructed_dataframe(blocks, recon, numeric_block_idx=6):
-    """
-    Parameters
-    ----------
-    blocks             : list[pd.DataFrame]
-        The original blocks you fed into the model (one-hot cats + numeric DF)
-    recon              : list[np.ndarray]
-        The list returned by model.predict(...)
-    numeric_block_idx  : int
-        Index of the numeric block in `blocks`
 
+# ------------------------------------------------------------------
+# Build TWO reconstructed DataFrames:
+#   • df_recon_1hot  – categorical columns as 0/1 one-hot
+#   • df_recon_prob  – categorical columns as probability values
+# ------------------------------------------------------------------
+def build_reconstructed_dataframes(blocks, recon, numeric_block_idx=6):
+    """
     Returns
     -------
-    df_recon  : pd.DataFrame
-        Reconstructed dataset with exactly the same columns & order as `pd.concat(blocks, axis=1)`
+    df_recon_1hot : pd.DataFrame
+        Categorical blocks converted to one-hot (0/1); numeric block as-is.
+    df_recon_prob : pd.DataFrame
+        Categorical blocks contain soft-max probabilities; numeric block as-is.
     """
-    recon_blocks = []
-    r_iter       = iter(recon)           # to pop categoricals in order
+    df_original=pd.concat(blocks, axis=1).reset_index(drop=True)
+    recon_1hot_blocks  = []
+    recon_prob_blocks  = []
+    r_iter             = iter(recon)         # iterate over cat heads
 
     for i, df in enumerate(blocks):
         if i == numeric_block_idx:
-            # numeric part is the *last* element in recon
+            # numeric part is recon[-1]
             num_pred = pd.DataFrame(recon[-1], columns=df.columns)
-            recon_blocks.append(num_pred)
+            recon_1hot_blocks.append(num_pred)
+            recon_prob_blocks.append(num_pred.copy())   # same for prob DF
         else:
-            logits   = next(r_iter)          # grab the corresponding cat logits
-            preds    = logits.argmax(-1)     # integer labels 0…k-1
-            one_hot  = np.eye(df.shape[1])[preds]   # back to one-hot
-            cat_pred = pd.DataFrame(one_hot, columns=df.columns).astype(int)
-            recon_blocks.append(cat_pred)
+            logits    = next(r_iter)                    # shape (N, k)
+            # --- one-hot version ---
+            preds     = logits.argmax(-1)               # integer labels
+            one_hot   = np.eye(df.shape[1])[preds]      # to one-hot
+            cat_1hot  = pd.DataFrame(one_hot, columns=df.columns).astype(int)
+            recon_1hot_blocks.append(cat_1hot)
+            # --- probability version ---
+            cat_prob  = pd.DataFrame(logits, columns=df.columns)
+            recon_prob_blocks.append(cat_prob)
 
-    df_recon = pd.concat(recon_blocks, axis=1).reset_index(drop=True)
-    return df_recon
+    df_recon_1hot = pd.concat(recon_1hot_blocks, axis=1).reset_index(drop=True)
+    df_recon_prob = pd.concat(recon_prob_blocks, axis=1).reset_index(drop=True)
+    
+    return df_recon_1hot, df_recon_prob, df_original
 
