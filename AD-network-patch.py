@@ -63,3 +63,12 @@ print("Saved → elbow_anomalies.csv")
 
 # pack both frames in a list for downstream use
 anom_bundle = [df_anom, df_all]    # anom_bundle[0] = anomalies, [1] = original
+
+#--------------------------------------
+def scale(df, scaler=None):
+  if scaler is None:
+    scaler = MinMaxScaler()
+    scaler.fit(df)
+  scaled_data = scaler.transform(df)
+  scaled_df = pd.DataFrame(scaled_data, columns=df.columns).fillna(-1)
+  return scaled_df, scaler
