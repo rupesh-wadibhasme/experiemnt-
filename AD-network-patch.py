@@ -77,43 +77,56 @@ def scale(df, scaler=None):
 
 
 # ------------------------------------------------------------------
-# Build TWO reconstructed DataFrames:
-#   • df_recon_1hot  – categorical columns as 0/1 one-hot
-#   • df_recon_prob  – categorical columns as probability values
+# Re-build two reconstructed DataFrames
+#   • df_recon_1hot  – cats as one-hot 0/1, numeric in ORIGINAL units
+#   • df_recon_prob  – cats as soft-max probabilities, numeric in ORIGINAL units
 # ------------------------------------------------------------------
-def build_reconstructed_dataframes(blocks, recon, numeric_block_idx=6):
+def build_reconstructed_dataframes(blocks,
+                                   recon,
+                                   numeric_block_idx=6,
+                                   num_scaler=None):
     """
+    Parameters
+    ----------
+    blocks             : list[pd.DataFrame]
+    recon              : list[np.ndarray]  (model.predict output)
+    numeric_block_idx  : int               (position of numeric DF in blocks)
+    num_scaler         : fitted MinMaxScaler (or compatible) ―
+                         if provided, numeric block is inverse-transformed
+                         back to real units; otherwise stays scaled.
+
     Returns
     -------
-    df_recon_1hot : pd.DataFrame
-        Categorical blocks converted to one-hot (0/1); numeric block as-is.
-    df_recon_prob : pd.DataFrame
-        Categorical blocks contain soft-max probabilities; numeric block as-is.
+    df_recon_1hot, df_recon_prob   (pandas DataFrames)
     """
-    df_original=pd.concat(blocks, axis=1).reset_index(drop=True)
-    recon_1hot_blocks  = []
-    recon_prob_blocks  = []
-    r_iter             = iter(recon)         # iterate over cat heads
+
+    recon_1hot_blocks, recon_prob_blocks = [], []
+    r_iter = iter(recon)  # iterate over categorical heads in order
 
     for i, df in enumerate(blocks):
         if i == numeric_block_idx:
-            # numeric part is recon[-1]
-            num_pred = pd.DataFrame(recon[-1], columns=df.columns)
-            recon_1hot_blocks.append(num_pred)
-            recon_prob_blocks.append(num_pred.copy())   # same for prob DF
+            # ---- numeric block ------------------------------------
+            num_pred = recon[-1]                          # ndarray (N, num_dim)
+            if num_scaler is not None:
+                num_pred = num_scaler.inverse_transform(num_pred)
+            num_pred_df = pd.DataFrame(num_pred, columns=df.columns)
+
+            recon_1hot_blocks.append(num_pred_df)
+            recon_prob_blocks.append(num_pred_df.copy())
+
         else:
-            logits    = next(r_iter)                    # shape (N, k)
-            # --- one-hot version ---
-            preds     = logits.argmax(-1)               # integer labels
-            one_hot   = np.eye(df.shape[1])[preds]      # to one-hot
-            cat_1hot  = pd.DataFrame(one_hot, columns=df.columns).astype(int)
+            # ---- categorical block -------------------------------
+            logits   = next(r_iter)                       # shape (N, k)
+            # one-hot (0/1) version
+            preds    = logits.argmax(-1)
+            one_hot  = np.eye(df.shape[1])[preds]
+            cat_1hot = pd.DataFrame(one_hot, columns=df.columns).astype(int)
+            # probability version
+            cat_prob = pd.DataFrame(logits, columns=df.columns)
+
             recon_1hot_blocks.append(cat_1hot)
-            # --- probability version ---
-            cat_prob  = pd.DataFrame(logits, columns=df.columns)
             recon_prob_blocks.append(cat_prob)
 
     df_recon_1hot = pd.concat(recon_1hot_blocks, axis=1).reset_index(drop=True)
     df_recon_prob = pd.concat(recon_prob_blocks, axis=1).reset_index(drop=True)
-    
-    return df_recon_1hot, df_recon_prob, df_original
-
+    return df_recon_1hot, df_recon_prob
