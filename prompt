@@ -108,8 +108,12 @@ Your task is to decide whether the record is a **LOW**, **MEDIUM**, or **HIGH** 
 1 Feature-selection & scoring rules
 ────────────────────────────────────────────────────────
 1. For each feature use `abs(Difference[feature])`.  
-2. Sort all features by this absolute value and **keep the top five**.  
-3. Assign the anomaly level:  
+2. For every feature use abs(Difference[feature]).
+Numeric features: first convert the raw delta to a **percentage error**  
+  `pct_error = 100 × |Generated – Actual| ÷ max(|Actual|, 1)`  
+  Judge impact as: |pct_error| ≥ 10 % → **high**, 5 – 10 % → **medium**, < 5 % → **low**.  
+3. Sort all features by this absolute value (or percentage error for numerics) and **keep the top five**. 
+4. Assign the anomaly level:  
 
 | Level     | Criteria (use absolute values)                          |
 |-----------|---------------------------------------------------------|
@@ -135,7 +139,6 @@ Top-5 abs differences
   BUnit_87  : 0.85  
   PrimaryCurr_USD : 0.95  
   AuthorisedStatus_3 : 0.91  
-  TranCode_10 : 0.40  
 
 Decision : HIGH  
 Reasoning : Counterparty *BSAN* and Business Unit 87 rarely trade in USD with Authorised Status 3, so this combination is highly unusual.
