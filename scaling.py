@@ -31,6 +31,17 @@ def scale(df: pd.DataFrame, scaler: StandardScaler | None = None, log: bool = Tr
     scaled_df = pd.DataFrame(scaler.transform(x), columns=df.columns).fillna(0)
     return scaled_df, scaler
 
+import tensorflow.keras.backend as K
+
+def perc_mse(y_true, y_pred):
+    pct = (y_pred - y_true) / (K.maximum(K.abs(y_true), 1e-9))
+    return K.mean(K.square(pct), axis=-1)
+
+losses = (
+    [keras.losses.SparseCategoricalCrossentropy()] * len(cardinals)
+    + [perc_mse]               # use for numeric head
+)
+model.compile(optimizer="adam", loss=losses)
 
 # -----------------------------------------------------------------
 # Inverse scaling  (scaled ➜ un-scale ➜ expm1)
