@@ -1,9 +1,0 @@
-def scale(df, scaler=None):
-  if scaler is None:
-    #scaler = MinMaxScaler()
-    
-    scaler = StandardScaler()
-    scaler.fit(df)
-  scaled_data = scaler.transform(df)
-  scaled_df = pd.DataFrame(scaled_data, columns=df.columns).fillna(0)
-  return scaled_df, scaler
