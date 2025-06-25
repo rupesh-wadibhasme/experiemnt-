@@ -81,3 +81,59 @@ def elbow_anomaly_bundle(row_score,
           f"{len(row_score):,})")
 
     return [df_anom, df_all], elbow_score, elbow_idx
+
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def elbow_anomaly_tail(row_score,
+                       blocks,
+                       max_fraction=0.05,      # stop if >5 % rows would be flagged
+                       drop_ratio=0.20,        # 20 % relative drop defines elbow
+                       loss_col="reconstruction_loss",
+                       show_gaps=True):
+    """
+    • Works from the largest errors downwards.
+    • Flags at most `max_fraction` of rows; could be fewer if a clear elbow appears earlier.
+    """
+    # 1️⃣ sort DESCENDING
+    idx_sorted = np.argsort(row_score)[::-1]
+    sorted_scores = row_score[idx_sorted]           # high → low
+    deltas = -np.diff(sorted_scores)                # positive drops
+
+    # 2️⃣ iterate until drop < drop_ratio OR max_fraction reached
+    thresh_idx = int(np.ceil(max_fraction * len(row_score)))  # fallback
+    base = sorted_scores[0]
+
+    for i, gap in enumerate(deltas, start=1):
+        if gap / base < drop_ratio:     # relative drop small → elbow
+            thresh_idx = i
+            break
+        base = sorted_scores[i]
+
+    elbow_score = sorted_scores[thresh_idx-1]       # last kept score
+
+    # 3️⃣ build masks / DataFrames
+    mask = row_score >= elbow_score
+    df_all  = pd.concat(blocks, axis=1).reset_index(drop=True)
+    df_anom = df_all.loc[mask].copy()
+    df_anom[loss_col] = row_score[mask]
+
+    # 4️⃣ optional plots
+    if show_gaps:
+        plt.figure(figsize=(7,4))
+        plt.plot(sorted_scores, lw=2)
+        plt.axvline(thresh_idx-1, ls="--", color="tab:red",
+                    label=f"elbow or {max_fraction:.0%} tail")
+        plt.title("Descending Sorted Reconstruction Errors")
+        plt.xlabel("Rank"); plt.ylabel("Error")
+        plt.legend(); plt.tight_layout(); plt.show()
+
+    print(f"Threshold @ rank {thresh_idx} (score {elbow_score:.6f}) "
+          f"→ {mask.sum():,} anomalies "
+          f"({100*mask.mean():.2f} % of {len(row_score):,})")
+
+    return [df_anom, df_all], elbow_score, idx_sorted[:thresh_idx]
+
