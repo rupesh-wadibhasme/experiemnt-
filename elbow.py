@@ -137,3 +137,68 @@ def elbow_anomaly_tail(row_score,
 
     return [df_anom, df_all], elbow_score, idx_sorted[:thresh_idx]
 
+
+
+def elbow_anomaly_rolling(row_score,
+                          blocks,
+                          window=500,         # size of rolling window
+                          jump_ratio=5.0,     # Δ must be ≥ median·jump_ratio
+                          max_fraction=0.10,  # never flag more than 10 %
+                          loss_col="reconstruction_loss",
+                          show_gaps=True):
+    """
+    Picks the first point where the slope (Δ error) is `jump_ratio` times
+    larger than the rolling median of the previous `window` slopes.
+    """
+    import numpy as np, pandas as pd, matplotlib.pyplot as plt
+
+    sorted_scores = np.sort(row_score)
+    deltas        = np.diff(sorted_scores)            # slope
+    N             = len(deltas)
+
+    # rolling median of previous `window` deltas
+    roll_med = np.zeros_like(deltas)
+    for i in range(1, N):
+        lo = max(0, i - window)
+        roll_med[i] = np.median(deltas[lo:i])
+
+    # start scanning when at least `window` points are available
+    search_start = window
+    cand_idx = np.where(
+        (np.arange(N) >= search_start) &
+        (deltas >= jump_ratio * roll_med)          # big jump
+    )[0]
+
+    # cap by max_fraction fallback
+    fallback = int(np.ceil((1 - max_fraction) * len(sorted_scores))) - 1
+    elbow_idx = int(cand_idx[0]) if cand_idx.size else fallback
+    elbow_score = float(sorted_scores[elbow_idx])
+
+    # ── plots ──
+    plt.figure(figsize=(7,4))
+    plt.plot(sorted_scores, lw=2)
+    plt.axvline(elbow_idx, ls="--", color="tab:red",
+                label=f"elbow (Δ ≥ {jump_ratio}× rolling median)")
+    plt.title("Sorted Reconstruction Errors"); plt.xlabel("Row index"); plt.ylabel("Error")
+    plt.legend(); plt.tight_layout(); plt.show()
+
+    if show_gaps:
+        plt.figure(figsize=(7,3))
+        plt.plot(deltas, lw=2, label="Δ error")
+        plt.plot(roll_med*jump_ratio, lw=1, ls="--", label=f"{jump_ratio}× roll median")
+        plt.axvline(elbow_idx, ls="--", color="tab:red")
+        plt.title("Δ error vs threshold"); plt.xlabel("Index"); plt.ylabel("Δ error")
+        plt.legend(); plt.tight_layout(); plt.show()
+
+    # ── build DFs ──
+    df_all  = pd.concat(blocks, axis=1).reset_index(drop=True)
+    mask    = row_score > elbow_score
+    df_anom = df_all.loc[mask].copy()
+    df_anom[loss_col] = row_score[mask]
+
+    print(f"Elbow @ {elbow_score:.6f} (idx {elbow_idx})  →  "
+          f"{mask.sum():,} anomalies ({100*mask.mean():.2f} %)")
+
+    return [df_anom, df_all], elbow_score, elbow_idx
+
+
