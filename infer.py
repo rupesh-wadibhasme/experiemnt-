@@ -56,6 +56,31 @@ def run_inference(model_f, scalers_f, csv_f, out_f, client="LENOVO"):
         numeric_block_idx=1)                # numeric block is second
     inputs = cat_blocks + [num_block]
 
+    # ---------------------------------------------------------------
+    # A.  Re-create the `features` DataFrame
+    # ---------------------------------------------------------------
+    features = pd.concat([cat_ohe, num_scaled], axis=1).reset_index(drop=True)
+    
+    # ---------------------------------------------------------------
+    # B.  Slice `features` back into the 6 categorical blocks + 1 numeric block
+    #     ⚠️ We rely on ohe.categories_ to know the exact width of each cat block.
+    # ---------------------------------------------------------------
+    cat_widths = [len(c) for c in ohe.categories_]     # e.g. [3,4,3,30,18,18]
+    blocks = []
+    start = 0
+    for w in cat_widths:
+        blocks.append(features.iloc[:, start:start + w])   # one block per cat
+        start += w
+    blocks.append(features.iloc[:, start:])                # numeric block
+    numeric_block_idx = len(blocks) - 1                    # == 6
+    
+    # ---------------------------------------------------------------
+    # C.  Convert blocks → model inputs
+    # ---------------------------------------------------------------
+    cat_arrays, num_array, _, _ = prepare_blocks(blocks, numeric_block_idx)
+    inputs = cat_arrays + [num_array]   # len(inputs) == 7  ✅
+
+    
     # 2-D. PREDICT & FLAG
     recon = model.predict(inputs, batch_size=512, verbose=0)
     _, row_score = compute_errors(cat_blocks, num_block, recon)
