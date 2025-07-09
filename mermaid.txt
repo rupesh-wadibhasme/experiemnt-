@@ -1,0 +1,23 @@
+flowchart TD
+    A([Start]) --> B["Load Deal Data\n(single FX deal)"]
+    B --> C["Select Required Columns"]
+    C --> D["Feature Engineering"]
+    D --> D1["Compute Is_weekend_date"]
+    D1 --> D2["Compute TDays"]
+    D2 --> D3["Compute FaceValue"]
+    D3 --> E["Type-cast & Fill NA"]
+    E --> F["Load Artifacts\n(AutoEncoder & Scalers)"]
+    F --> G{Business-Logic Checks}
+    G -->|New combo?| H["Early Anomaly\nReason & Exit"]
+    G -->|Known combo| I["Feature Transformation"]
+    I --> I1["One-Hot Encode"]
+    I1 --> I2["Scale Numeric"]
+    I2 --> I3["Assemble Blocks\nfor Model"]
+    I3 --> J["AutoEncoder Prediction"]
+    J --> K["Reconstruct Features"]
+    K --> L["Compute Deviations"]
+    L --> M{Threshold\nExceeded?}
+    M -->|No| N["Return Normal Deal"]
+    M -->|Yes| O["Prepare LLM Input JSON"]
+    O --> P["LLM Explanation\n(Business-centric)"]
+    P --> Q["Return Anomalous Deal\nwith Reason JSON"]
