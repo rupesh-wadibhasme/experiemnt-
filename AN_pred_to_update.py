@@ -1,85 +1,41 @@
-def anomaly_prediction(data:dict):
-  '''
-  Process the input data points and send to repective method.
-  Input:
-    -data: dictionary with fx deal data points.
-  Output:
-    Return the anomaly status.
-    Anomaly:Yes/No
-    Reason : reson for anomaly
-    Client: client name
-    UniqueId: unique contract id.
-  '''
-  #data = ValidateParams(**data)
-  #data = dict(data)
-  client_dict = {x:v for x,v in data.items() if x in ['Client', 'UniqueId']}
-  client_dict['Anomaly'] = 'No'
-  data = {x:v for x,v in data.items() if x not in ['Client', 'UniqueId']}
-  result, features, reconstructed_features, reconstructed_df, reconstructed_normalized_df = inference(pd.DataFrame(data, index=[0]), client_name=client_dict['Client'])
-  #return result
+# ---------- ❷‑B new FaceValue / TDays logic --------------------
+else:
+    fv_actual = features['FaceValue'].iat[0]
+    td_actual = features['TDays'].iat[0]
+    fv_error  = df_deviation['FaceValue'].iat[0]
+    td_error  = df_deviation['TDays'].iat[0]
 
-  if type(result)==str:
-    print('result is str->')
-    client_dict['Anomaly'] = 'Yes'
-    client_dict['Reason'] = result
-  
-  else:
-    threshold_1,threshold_2 = 0.95, 0.9
-    # filtered_data = get_filtered_data(features, reconstructed_df)
-    # if len(filtered_data['Deviated_Features'])>0:
-    #   print(f"Feeding the encoder model prediction to LLM for explanation.")
-    #   llm_input = f'\nData:\n{filtered_data} \n' +f"\nContext:\n{context}\n"
-    #   outs = get_llm_output(llm_input)['answer']
-    #   client_dict['Anomaly'] = 'Yes'
-    #   try:
-    #     outs_dict = json.loads(outs)
-    #     client_dict['Reason'] = outs_dict['Reason for Anomaly']
-    #   except:
-    #     client_dict['Reason'] = outs
-    # else:
-    #     client_dict['Reason'] = "This FX deal looks normal."
+    # ① value rule  (outside 1‑99 % band in scaled space)
+    flag_raw_fv = fv_actual < lo_fv or fv_actual > hi_fv
+    flag_raw_td = td_actual < lo_td or td_actual > hi_td
 
-    # Could be anomaly or non anomaly to be decided by AutoEncoder
-    columns = features.columns
-    Anomalous = 'Not yet'
-    df_deviation = np.abs(features-reconstructed_df)
-    df_deviation = df_deviation.round(2)
-    df_deviation = pd.DataFrame(df_deviation,columns=columns)
-    #Check if any rare combination of Bunit and Cpty
-    df_dev_bu_cpty = df_deviation.loc[:,df_deviation.columns.str.startswith(('Cpty'))]
-    is_cpty_dev = df_dev_bu_cpty.where(df_dev_bu_cpty>threshold_1).dropna(axis=1)
-    # if df_dev_bu_cpty[df_dev_bu_cpty>threshold_1].any().sum()>=1:
-    #   print('df_dev_bu_cpty>threshold_1')
-    #   Anomalous = 'Yes'
-    #   response = f"Anomalous due to High Deviations in features.Deviated features:{df_dev_bu_cpty[df_dev_bu_cpty>threshold_1].dropna(axis=1)}"
-    #   response_list.append((idx,Anomalous,response))
-    #   continue
-    df_deviation = df_deviation.loc[:, ~df_deviation.columns.str.startswith(('BUnit', 'Cpty'))]    
-    
-    if df_deviation[df_deviation>threshold_1].any().sum()>=1:
-      #print('df_deviation>threshold_1')
-      #print(df_deviation[df_deviation>threshold_1].dropna(axis=1))
-      Anomalous = 'Yes'
-      response = f"Anomalous due to High Deviations in features.Deviated features:{df_deviation[df_deviation>threshold_1].dropna(axis=1)}"
-    elif df_deviation[df_deviation>threshold_2].any().sum()>2:
-      #print('df_deviation>threshold_2')
-      #print(df_deviation[df_deviation>threshold_2])
-      Anomalous = 'Yes'
-      response = f"Anomalous due to High Deviations in features.Deviated features:{df_deviation[df_deviation>threshold_2].dropna(axis=1)}"
+    # ② error rule  (> threshold_1 after scaling)
+    flag_err_fv = fv_error > threshold_1
+    flag_err_td = td_error > threshold_1
+
+    if flag_raw_fv or flag_raw_td or flag_err_fv or flag_err_td:
+        Anomalous = 'Yes'
+        reason_bits = []
+        if flag_raw_fv:
+            reason_bits.append(
+                "Deal amount (FaceValue) falls outside the typical range observed for past trades."
+            )
+        if flag_err_fv and not flag_raw_fv:
+            reason_bits.append(
+                "Deal amount (FaceValue) is unusual compared with similar historical trades."
+            )
+        if flag_raw_td:
+            reason_bits.append(
+                "Transaction tenor (TDays) is well outside the usual maturity window."
+            )
+        if flag_err_td and not flag_raw_td:
+            reason_bits.append(
+                "Transaction tenor (TDays) differs significantly from comparable historical deals."
+            )
+        response = " ".join(reason_bits)  # single business‑friendly sentence
     else:
-      df_deviation[['FaceValue','TDays']] = 5*df_deviation[['FaceValue','TDays']]
-      if df_deviation[df_deviation[['FaceValue','TDays']]>threshold_1].any().sum()>=1:
-          print('df_deviation[facevalue/tdays]>threshold_1')
-          Anomalous = 'Yes'
-          response = f"Anomalous due to High Deviations in features.Deviated features:{df_deviation[df_deviation>threshold_1].dropna(axis=1)}"
-      else:
-        print('Else else')
         Anomalous = 'No'
-        #print('FaceValue:',df_deviation['FaceValue'].values[0])
-        #print('TDays:',df_deviation['TDays'].values[0])
-        response = f"Non Anomalous as there are no major Deviations in features.\n Deviations: 'FaceValue': {df_deviation['FaceValue'].values[0]},'TDays:':{df_deviation['TDays'].values[0]} " 
-    client_dict['Anomaly'] = Anomalous
-    client_dict['Reason'] = response
-
-  return client_dict
-  
+        response  = (
+            f"No material anomalies detected in key deal metrics. "
+           
+        )
