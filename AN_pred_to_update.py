@@ -1,3 +1,26 @@
+# at top of the file, right after imports
+import pickle, os
+_bounds_cache = {}
+
+def get_value_bounds(client: str, models_path: str):
+    """
+    Load <client>_value_bounds.pkl exactly once and keep in memory.
+    Structure:
+       {"FaceValue": [lo_s, hi_s],
+        "TDays"    : [lo_s, hi_s]}
+    """
+    if client in _bounds_cache:
+        return _bounds_cache[client]
+
+    path = os.path.join(models_path, f"{client}_value_bounds.pkl")
+    with open(path, "rb") as f:
+        _bounds_cache[client] = pickle.load(f)
+    return _bounds_cache[client]
+
+
+
+
+
 # ---------- ❷‑B new FaceValue / TDays logic --------------------
 else:
     fv_actual = features['FaceValue'].iat[0]
@@ -12,7 +35,7 @@ else:
     # ② error rule  (> threshold_1 after scaling)
     flag_err_fv = fv_error > threshold_1
     flag_err_td = td_error > threshold_1
-
+    threshold_1, threshold_2 = 0.95, 0.90 
     if flag_raw_fv or flag_raw_td or flag_err_fv or flag_err_td:
         Anomalous = 'Yes'
         reason_bits = []
