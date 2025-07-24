@@ -18,6 +18,16 @@ if actual_combo in least_freq_combos:
         f"The combination of Business Unit '{actual_combo[0]}', Counterparty '{actual_combo[1]}', "
         f"Buy Currency '{actual_combo[2]}' and Sell Currency '{actual_combo[3]}' is one of the least frequently seen in past transactions."
     )
+    # Step 4: Reverse one-hot for each group to find most probable prediction
+    def decode_one_hot(df_row, prefix):
+        matches = [col for col in df_row.index if col.startswith(f"{prefix}_")]
+        if not matches:
+            return 'Unknown'
+        subrow = df_row[matches]
+        return subrow.idxmax().replace(f"{prefix}_", "")
+
+    # Step 5: Decode reconstructed one-hot columns
+    predicted_combo = tuple(decode_one_hot(reconstructed_df.loc[0], k) for k in combo_keys)
 
     # Step 5: Compare with model-predicted combination
     predicted_combo = tuple(reconstructed_df.loc[0, k] for k in combo_keys)
