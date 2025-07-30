@@ -1,10 +1,10 @@
- """
- Refactored version of the original inference script.
- ▸ No business‑logic changes, only structural:
-   • All helper functions that were nested inside ``inference`` are now module‑level so they can be imported and unit‑tested directly.
-   • Hard‑coded paths, magic numbers and other static values are isolated in the ``CONFIG`` dictionary.
-   • Execution / demo code moved under ``if __name__ == "__main__"`` so importing this module never triggers heavy I/O.
- """
+"""
+Refactored version of the original inference script.
+▸ No business‑logic changes, only structural:
+  • All helper functions that were nested inside ``inference`` are now module‑level so they can be imported and unit‑tested directly.
+  • Hard‑coded paths, magic numbers and other static values are isolated in the ``CONFIG`` dictionary.
+  • Execution / demo code moved under ``if __name__ == "__main__"`` so importing this module never triggers heavy I/O.
+"""
 
 from __future__ import annotations
 
@@ -86,18 +86,15 @@ def prepare_blocks(
         embed_dims.append(embed_dim_rule(df.shape[1]))
     return cat_arrays, num_array, cardinals, embed_dims
 
-
-# ------------------------- data‑prep helpers ------------------------------
-
-def get_column_types(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
-    categorical_columns, numeric_columns = [], []
+def get_column_types(df:pd.DataFrame):
+    categorical_columns = []
+    numeric_columns = []
     for feature in df.columns:
-        if df[feature].dtype == object or str(df[feature].dtype).startswith("category"):
-            categorical_columns.append(feature)
-        else:
-            numeric_columns.append(feature)
+        if df[feature].dtype == object:
+          categorical_columns.append(feature)
+        elif df[feature].dtype in (float, int) :
+          numeric_columns.append(feature)
     return categorical_columns, numeric_columns
-
 
 def one_hot(df: pd.DataFrame, encoder: OneHotEncoder | None = None):
     if encoder is None:
@@ -319,11 +316,15 @@ def inference(data: pd.DataFrame, year_gap, client_name: str = "rcc"):
 
     # treat numerics that are actually categories as str so that .astype("category") later works
     data[CONFIG["CATEGORIES_IN_NUMERICS"]] = data[CONFIG["CATEGORIES_IN_NUMERICS"]].astype(str)
-
+    
     categorical_columns, numeric_columns = get_column_types(data)
-    data = pd.concat(
-        (data[categorical_columns].astype("category"), data[numeric_columns].astype(float)), axis=1
-    )
+    print(categorical_columns)
+    print(numeric_columns)
+    # data = pd.concat(
+    #     (data[categorical_columns].astype("category"), data[numeric_columns].astype(float)), axis=1
+    # )
+
+    data = pd.concat((data[categorical_columns].astype('category'), data[numeric_columns]), axis=1)
     data = data.apply(face_value, axis=1)
     data.fillna(0, inplace=True)
 
@@ -379,20 +380,147 @@ def inference(data: pd.DataFrame, year_gap, client_name: str = "rcc"):
     )
     return scores, features, reconstructed_features, reconstructed_df, reconstructed_normalized_df
 
+def anomaly_prediction(data: dict, debug: bool = False) -> dict:
+    """
+    Perform anomaly detection on an incoming FX deal using autoencoder reconstruction error
+    and business rule + statistical + categorical reasoning.
 
-# ---------------------------------------------------------------------------
-# ✓ Remaining original functions are kept verbatim for brevity (no logic change)
-# ---------------------------------------------------------------------------
+    Args:
+        data (dict): Input FX deal with keys including 'Client', 'UniqueId', and transaction features.
+        debug (bool): If True, prints internal computation details for debugging.
 
-# get_llm_output, get_condition_filters, get_filtered_data,
-# get_value_bounds and anomaly_prediction can remain exactly as in the
-# original script – copy/paste below this comment if needed.
+    Returns:
+        dict: {
+            'Client': ...,
+            'UniqueId': ...,
+            'Anomaly': 'Y' / 'N',
+            'Reason': explanation string
+        }
+    """
+    
+    # Load frequency stats
+    models_path = r'C:\Users\LC5753473\OneDrive - FIS\Documents\FIS_Work\AD_analysis\src\backend\scripts\trained_model_scaler_1'
+    year_gap=pickle.load(open(os.path.join(models_path,"IXOM_year_gap_data.pkl"), 'rb'))
+    # ------------------------------
+    # Constants
+    combo_keys = ['BUnit', 'Cpty', 'BuyCurr', 'SellCurr']
+    threshold_1 = 0.8
+    threshold_2 = 0.9
+
+    # ------------------------------
+    # Step 0: Initial Setup
+    client_dict = {x: v for x, v in data.items() if x in ['Client', 'UniqueId']}
+    client_dict['Anomaly'] = 'N'
+    client_dict['Reason'] = 'This FX deal is normal'
+
+    data = {x: v for x, v in data.items() if x not in ['Client', 'UniqueId']}
+    client_name = client_dict['Client']
+
+    result, features, reconstructed_features, reconstructed_df, reconstructed_normalized_df = inference(
+        pd.DataFrame(data, index=[0]), year_gap,client_name)
+
+    #print(features)
+    print('-----------------------------------------------')
+    #print(reconstructed_features)
+    if isinstance(result, str):
+        # Business rule triggered
+        client_dict['Anomaly'] = 'Y'
+        client_dict['Reason'] = result
+        return client_dict
+
+    columns = features.columns
+    df_deviation = (features - reconstructed_df).abs().round(2)
+    df_deviation = pd.DataFrame(df_deviation, columns=columns)
+
+    # ------------------------------
+    # Step 5: Start building reasons
+    Anomalous = 'N'
+    reason_bits = []
+    numeric_anomaly = False
+    categorical_anomaly = False
+
+    fv_error = df_deviation['FaceValue']
+    td_error = df_deviation['TDays']
+
+    print(fv_error)
+    print(td_error)
+ 
+    flag_err_fv = fv_error > threshold_1
+    flag_err_td = td_error > threshold_1
+    #print(type(flag_err_fv[0]),type(flag_err_td[0]))
+    if flag_err_fv[0]:
+        Anomalous = 'Y'
+        reason_bits.append("Deal amount (FaceValue) falls outside the typical range observed for past trades.")
+    if flag_err_td[0]:
+        Anomalous = 'Y'
+        reason_bits.append("Transaction tenor (TDays) differs significantly from comparable historical deals.")  
+
+    # === Decode one-hot categorical values from prediction ===
+    def decode_one_hot(df_row, prefix):
+        matches = [col for col in df_row.index if col.startswith(f"{prefix}_")]
+        if not matches:
+            return 'Unknown'
+        subrow = df_row[matches]
+        return subrow.idxmax().replace(f"{prefix}_", "")
+
+    
+    actual_combo = tuple(decode_one_hot(features.loc[0], k) for k in combo_keys)
+    predicted_combo = tuple(decode_one_hot(reconstructed_df.loc[0], k) for k in combo_keys)
+
+    # Unpack for clarity
+    actual = dict(zip(combo_keys, actual_combo))
+    pred = dict(zip(combo_keys, predicted_combo))
+
+    # Track mismatches
+    mismatches = {k: (actual[k], pred[k]) for k in combo_keys if actual[k] != pred[k]}
+    matches = {k: actual[k] for k in combo_keys if actual[k] == pred[k]}
+
+    # Initialize flags
+    categorical_anomaly = False
+    #Anomalous = 'N'
+
+    # Case 1: BUnit and Cpty match, but Buy/Sell differ
+    if all(k in matches for k in ['BUnit', 'Cpty']) and any(k in mismatches for k in ['BuyCurr', 'SellCurr']):
+        categorical_anomaly = True
+        Anomalous = 'Y'
+        reason_bits.append(
+            f"For BUnit '{actual['BUnit']}' and Cpty '{actual['Cpty']}', the currency pair is unexpected. "
+            f"Model suggests BuyCurr should be '{pred['BuyCurr']}' and SellCurr should be '{pred['SellCurr']}'."
+        )
+
+    # Case 2: Buy/Sell match, but BUnit or Cpty differ
+    elif all(k in matches for k in ['BuyCurr', 'SellCurr']) and any(k in mismatches for k in ['BUnit', 'Cpty']):
+        categorical_anomaly = True
+        Anomalous = 'Y'
+        for k in ['BUnit', 'Cpty']:
+            if k in mismatches:
+                reason_bits.append(
+                    f"For currency pair {actual['BuyCurr']}/{actual['SellCurr']}, {k} '{actual[k]}' is unexpected. "
+                    f"Model suggests it should be '{pred[k]}'."
+                )
+
+    # Case 3: All fields differ or other combinations
+    elif mismatches:
+        categorical_anomaly = True
+        Anomalous = 'Y'
+        for k in mismatches:
+            reason_bits.append(
+                f"{k} '{actual[k]}' is unexpected. Model suggests it should be '{pred[k]}'."
+            )
 
 
-# ---------------------------------------------------------------------------
-# Prevent accidental heavy execution when importing this module
-# ---------------------------------------------------------------------------
+    return client_dict
 if __name__ == "__main__":
+    import datetime
+    data=pd.read_excel(r"C:\Users\LC5753473\OneDrive - FIS\Documents\FIS_Work\AD_analysis\src\backend\scripts\Datasets\final_test_data\IXOM_Test_Data_25Jul2025.xlsx")
+    data['Instrument']=data['Instrument'].str.upper().str.replace(r'\s+', '', regex=True)
+    #print(anomaly_prediction(sample))
+    #data['Instrument']
     warnings.filterwarnings("ignore")
     # Example manual test (kept minimal – no I/O heavy processing on import)
     print("[INFO] Module imported successfully; run your tests against it.")
+    output_dict=[]
+    for i in range(data.shape[0]):
+        output_dict.append(anomaly_prediction(data.loc[i]))
+        if i>=1:
+            break   
