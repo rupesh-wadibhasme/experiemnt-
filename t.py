@@ -1,3 +1,14 @@
+def remove(self, url:str) -> bool:
+  client = SearchClient(endpoint=self.url, index_name=self.index, credential=self.credential)
+  documents = client.search(search_text=f'url:{url}')
+  actions = [{'@search.action':'delete','id': doc['id']} for doc in documents if json.loads(doc.get('metadata','')).get('url')==url]
+  if not actions:
+    return False
+  removed = client.upload_documents(documents=actions)
+  return bool(removed)
+
+
+
 def create_knowledge_base(llm:LLM, service_id:str, version:str) -> KnowledgeBase:
   """
   Creates vector database as a knowledge base.
