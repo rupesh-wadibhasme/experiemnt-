@@ -97,6 +97,79 @@ def prepare():
 
         return log(update_results, update_seconds) and test_chatbot(kb)
 
+
+
+
+
+#-----------------
+
+# --------------------------------------------------------------------------- #
+
+from typing import List, Union
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from azure.search.documents import SearchClient
+
+def _ids_for_url(client: SearchClient, url: str) -> List[str]:
+    """
+    Helper: run the same search you use today (url:{url}),
+    but grab only id + metadata and return matching ids.
+    """
+    docs = client.search(
+        search_text=f'url:{url}',
+        select="id,metadata",
+        top=100     # safeguard; most URLs map to 1 doc
+    )
+    return [
+        d["id"] for d in docs
+        if json.loads(d.get("metadata", "{}")).get("url") == url
+    ]
+
+def remove(self,
+           urls: Union[str, List[str]],
+           batch_size: int = 1000,
+           max_workers: int = 8) -> bool:
+    """
+    Faster replacement that **keeps the original metadata-based lookup**.
+    * urls          – one str or a list[str] to delete
+    * batch_size    – how many deletes per upload_documents() call
+    * max_workers   – parallel searches in a thread-pool
+    Returns True if any document was deleted.
+    """
+
+    # ---------- normalise input ------------------------------------------- #
+    if isinstance(urls, str):
+        urls = [urls]
+    if not urls:
+        return False
+
+    # ---------- create / reuse one SearchClient --------------------------- #
+    if not hasattr(self, "_client"):
+        self._client = SearchClient(
+            endpoint=self.url,
+            index_name=self.index,
+            credential=self.credential,
+        )
+    client = self._client
+
+    # ---------- 1) find ids in parallel ----------------------------------- #
+    all_ids: List[str] = []
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(_ids_for_url, client, u): u for u in urls}
+        for fut in as_completed(futures):
+            all_ids.extend(fut.result())
+
+    if not all_ids:
+        return False
+
+    # ---------- 2) delete in batches -------------------------------------- #
+    for i in range(0, len(all_ids), batch_size):
+        chunk = all_ids[i : i + batch_size]
+        actions = [{"@search.action": "delete", "id": _id} for _id in chunk]
+        client.upload_documents(actions)
+
+    return True
+
+
     except Exception as e:
         logger.error(f"🚩 {service_id} ({version}) Failed to prepare knowledge base: {e}", exc_info=True)
         return False
