@@ -5,7 +5,7 @@
 # COMMAND ----------
 
 # MAGIC %pip install openpyxl keras tensorflow iterative-stratification flask mlflow==3.0.1 azure-identity==1.19.0
-
+% pip install databricks-sql-connector==4.0.3 azure-identity==1.23.0
 # COMMAND ----------
 
 dbutils.library.restartPython()
@@ -50,6 +50,69 @@ random.seed(42)
 import pre_process
 
 # COMMAND ----------
+# ----------> Adding logging <---------------------------------------------------
+
+# --- BEGIN: drop-in event logger (SQL Warehouse, same as experimental script) ---
+import os, json
+from databricks.sql import connect
+from azure.identity import ClientSecretCredential
+
+# Defaults match your experimental script. Override via env if needed.
+LOG_TABLE_UC_NAME = os.getenv(
+    "LOG_TABLE_UC_NAME",
+    "aimluat.treasury_anomaly_fx_detection.inference_logs_v3"
+)
+WORKSPACE_FQDN = os.getenv("WORKSPACE_FQDN")                 # e.g. "adb-85209.azuredatabricks.net"
+SQL_WAREHOUSE_HTTP_PATH = os.getenv("SQL_WAREHOUSE_HTTP_PATH")# e.g. "/sql/1.0/warehouses/xxxx"
+AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID")               # e.g. "ca9..." (from your exp script)
+AZURE_SP_CLIENT_ID = os.getenv("AZURE_SP_CLIENT_ID")
+AZURE_SP_CLIENT_SECRET = os.getenv("AZURE_SP_CLIENT_SECRET")
+_DATABRICKS_SCOPE = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/.default"  # same as experimental
+
+def _get_access_token() -> str:
+    cred = ClientSecretCredential(
+        client_id=AZURE_SP_CLIENT_ID,
+        client_secret=AZURE_SP_CLIENT_SECRET,
+        tenant_id=AZURE_TENANT_ID
+    )
+    return cred.get_token(_DATABRICKS_SCOPE).token
+
+def log_event(input_payload, response, status: str, stage: str):
+    """
+    Write a single JSON log record to the same Delta table your experimental script uses.
+    - Timestamp is recorded by the table's DEFAULT current_timestamp() (as in your experiment).
+    - input_payload/response can be dict/str; they’re JSON-serialized.
+    - status: 'SUCCESS'|'FAILURE'|'INFO' etc.
+    - stage: free text like 'TRAINING', 'REGISTRATION', 'DEPLOYMENT', 'VALIDATION', etc.
+    """
+    try:
+        message = json.dumps(
+            {
+                "stage": stage,
+                "status": status,
+                "input_payload": input_payload,
+                "response": response,
+            },
+            default=str,
+        )
+        token = _get_access_token()
+        with connect(server_hostname=WORKSPACE_FQDN,
+                     http_path=SQL_WAREHOUSE_HTTP_PATH,
+                     access_token=token) as conn:
+            with conn.cursor() as cur:
+                # Use a parameterized query to avoid quoting issues
+                cur.execute(f"INSERT INTO {LOG_TABLE_UC_NAME} (log_entry) VALUES (?)", (message,))
+    except Exception as e:
+        # Non-fatal: keep pipeline alive even if logging fails
+        print(f"[log_event] WARN: failed to write log: {e}")
+# --- END: event logger --------------------------------------------
+
+
+
+
+
+
+
 
 def get_model_to_train(input_shapes, neuron_set,
                        activation, noise, dropout=0, regularizer=None,):
@@ -306,8 +369,6 @@ def training(data, models_path, epochs, neuron_set, activation, noise, dropout, 
                   )
   return model, fig_name
 
-# COMMAND ----------
-
 def load_config(client_name, config_file='config.yml'):
     """
     Loads configuration from a YAML file, applying client-specific overrides.
@@ -558,7 +619,13 @@ for container, info in registered_models_info.items():
                 }
             )
             print(f"Endpoint '{endpoint_name}' updated to serve version {model_version_to_serve}.")
-
+            log_event(
+                  input_payload={"endpoint": endpoint_name, "model_name": model_name},
+                  response={"action": "update", "model_version": model_version_to_serve},
+                  status="SUCCESS",
+                  stage="DEPLOYMENT"
+              )
+          
         except Exception as e:
             if "RESOURCE_DOES_NOT_EXIST" in str(e): # Or check specific error for not found
                 print(f"Endpoint '{endpoint_name}' does not exist. Creating it.")
@@ -577,6 +644,12 @@ for container, info in registered_models_info.items():
                     }
                 )
                 print(f"Endpoint '{endpoint_name}' created serving version {model_version_to_serve}.")
+                log_event(
+                      input_payload={"endpoint": endpoint_name, "model_name": model_name},
+                      response={"action": "create", "model_version": model_version_to_serve},
+                      status="SUCCESS",
+                      stage="DEPLOYMENT"
+                  )
             else:
                 raise e
         
@@ -601,6 +674,12 @@ for container, info in registered_models_info.items():
 
             if status == "READY" and update_status == "NOT_UPDATING":
                 print(f"\nEndpoint '{endpoint_name}' is READY.")
+                log_event(
+                        input_payload={"endpoint": endpoint_name},
+                        response={"state": "READY", "elapsed_seconds": int(time.time() - start_time)},
+                        status="SUCCESS",
+                        stage="DEPLOYMENT_READY"
+                    )
                 break # Exit loop if ready
             
             # Check for timeout *after* checking if it's READY
@@ -609,6 +688,14 @@ for container, info in registered_models_info.items():
                 print(f"Current status: {status}")
                 # client.delete_endpoint(endpoint=endpoint_name)
                 # Forcefully stop the script by raising an exception
+
+                log_event(
+                      input_payload={"endpoint": endpoint_name},
+                      response={"state": status, "message": "timeout"},
+                      status="FAILURE",
+                      stage="DEPLOYMENT_READY"
+                  )
+  
                 raise TimeoutError(f"Endpoint '{endpoint_name}' failed to become ready within {TIMEOUT_SECONDS} seconds. Current status: {status}")
 
             sleep(POLL_INTERVAL_SECONDS) # Wait before checking again
@@ -618,6 +705,13 @@ for container, info in registered_models_info.items():
     except TimeoutError as te:
         print(f"Operation for {endpoint_name} timed out: {te}. Moving to next endpoint.")# This catch block specifically handles the TimeoutError, logs it,
     except Exception as e:
+         log_event(
+              input_payload={"endpoint": endpoint_name if 'endpoint_name' in locals() else None},
+              response={"error": str(e)},
+              status="FAILURE",
+              stage="DEPLOYMENT"
+          )
+      
         print(f"An unexpected error occurred for {endpoint_name}: {e}. Moving to next endpoint.")
         # Catch any other unexpected errors during the process for this endpoint
 
@@ -661,5 +755,20 @@ for container, info in registered_models_info.items():
             serving_input=serving_input
         )
         print("Explicit serving input validation successful!")
+
+        log_event(
+              input_payload={"model_uri": model_uri, "sample": serving_input_example_dict},
+              response={"validation": "passed"},
+              status="SUCCESS",
+              stage="SERVING_VALIDATE"
+          )
     except Exception as e:
         print(f"Explicit serving input validation FAILED: {e}")
+      
+        log_event(
+                input_payload={"model_uri": model_uri if 'model_uri' in locals() else None,
+                               "sample": serving_input_example_dict},
+                response={"validation": "failed", "error": str(e)},
+                status="FAILURE",
+                stage="SERVING_VALIDATE"
+            )
