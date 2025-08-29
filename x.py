@@ -355,52 +355,6 @@ assert response.status_code == 200, f"Error: {response.status_code} - {response.
 
 response.json()
 
-# COMMAND ----------
 
-TABLE_NAME = "aimluat.treasury_anomaly_fx_detection.inference_logs_v3"
-def create_log_record( cursor, message):
-    #
-    # https://learn.microsoft.com/en-us/azure/databricks/dev-tools/python-sql-connector#query-data
-    cursor.execute(
-        f"insert into {TABLE_NAME} (log_entry) values ('{message}')"
-)
-    
-def entra_access_token():
-    try:
-        credential = ClientSecretCredential(
-            client_id=os.environ["AZURE_SP_CLIENT_ID"], 
-            client_secret=os.environ["AZURE_SP_CLIENT_SECRET"],
-            tenant_id=os.environ["AZURE_TENANT_ID"]
-        )
-        #
-        # this should be the same across all environments
-        databricks_scope = "2ff814a6-85cb-cd0e6f879c1d/.default"
-        token_response = credential.get_token(databricks_scope)
-        assert token_response
-        return (True, token_response.token)
-    except Exception as e:
-        return (False, e.message)
-
-# COMMAND ----------
-
-TABLE_NAME = "aimluat.treasury_anomaly_fx_detection.inference_logs_v3"
-def predict( model_input='test_log_entry'):
-        #
-        # if this fails, then we can't log anything ... since we can't get a connection to 
-        # the SQL warehouse
-        ok, access_token = entra_access_token()
     
 
-        try:
-            with connect(
-                server_hostname  = os.environ["WORKSPACE_FQDN"],
-                http_path        = os.environ["SQL_WAREHOUSE_HTTP_PATH"],
-                access_token     = access_token
-            ) as connection:
-                with connection.cursor() as cursor:
-                    create_log_record(cursor, model_input)
-        except Exception as e:
-            #
-            # this will likely return a 500 error
-            raise mlflow.exceptions.MlflowException(f"unexpected error", error_code=mlflow.exceptions.get_error_code(500))
-predict()
