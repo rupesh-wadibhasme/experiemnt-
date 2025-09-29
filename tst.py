@@ -5,6 +5,20 @@
 # Or in a notebook:
 #   %run unit_tests_simple.py
 
+
+'''
+# (optional) !pip install -q pandas scikit-learn
+
+import os, sys, unittest
+# ensure we're in the project root (same dir as unit_tests_simple.py)
+sys.path.insert(0, os.getcwd())
+
+import unit_tests_simple as uts
+unittest.main(module=uts, argv=['first-arg-is-ignored'], exit=False, verbosity=2)
+'''
+
+
+
 import os, sys, unittest, json, importlib
 import pandas as pd
 
