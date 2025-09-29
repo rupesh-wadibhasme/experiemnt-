@@ -7,13 +7,17 @@
 
 
 '''
-# (optional) !pip install -q pandas scikit-learn
-
 import os, sys, unittest
-# ensure we're in the project root (same dir as unit_tests_simple.py)
-sys.path.insert(0, os.getcwd())
+from pathlib import Path
 
+# add the parent (project root) to sys.path
+PROJECT_ROOT = str(Path.cwd().parent)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# when running from inside infer_test, you can import the file directly
 import unit_tests_simple as uts
+
 unittest.main(module=uts, argv=['first-arg-is-ignored'], exit=False, verbosity=2)
 '''
 
@@ -22,8 +26,9 @@ unittest.main(module=uts, argv=['first-arg-is-ignored'], exit=False, verbosity=2
 import os, sys, unittest, json, importlib
 import pandas as pd
 
-# Ensure project root on path (this file's dir)
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(TEST_DIR)
+
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
