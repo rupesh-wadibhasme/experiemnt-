@@ -1,4 +1,3 @@
-
 import os
 import sys
 import io
@@ -13,36 +12,42 @@ import numpy as np
 import pandas as pd
 
 # --- Ensure project root on path ---
+# If this file is under project_root/test/, parent-of-parent is the project root.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 # --- Prepare stub modules for odd import paths used in artifacts.py ---
-# artifacts.py does: from fx_serving.serving_security.safe_pickle import safe_load
-# We'll create a stub package hierarchy and redirect safe_load to our local safe_pickle.safe_load
+# artifacts.py may do: from fx_serving.serving_security.safe_pickle import safe_load
+# We'll create a stub package hierarchy and redirect safe_load to our local utils.safe_pickle.safe_load
 stub_pkg = types.ModuleType("fx_serving")
 stub_serving_security = types.ModuleType("fx_serving.serving_security")
 stub_safe_pickle = types.ModuleType("fx_serving.serving_security.safe_pickle")
 
 # Bind local safe_load implementation if available; else provide a simple passthrough
-try:
-    local_sp = importlib.import_module("safe_pickle")
-    def _safe_load(file_obj):
+local_sp = None
+for candidate in ("utils.safe_pickle", "safe_pickle"):
+    try:
+        local_sp = importlib.import_module(candidate)
+        break
+    except Exception:
+        pass
+
+def _safe_load(file_obj):
+    if local_sp and hasattr(local_sp, "safe_load"):
         return local_sp.safe_load(file_obj)
-except Exception:
-    def _safe_load(file_obj):
-        return pickle.load(file_obj)
+    return pickle.load(file_obj)
 
 setattr(stub_safe_pickle, "safe_load", _safe_load)
 sys.modules["fx_serving"] = stub_pkg
 sys.modules["fx_serving.serving_security"] = stub_serving_security
 sys.modules["fx_serving.serving_security.safe_pickle"] = stub_safe_pickle
 
-# --- Import target modules ---
-serializers = importlib.import_module("serializers")
-safe_pickle_mod = importlib.import_module("safe_pickle")
-rules = importlib.import_module("rules")
-preprocess = importlib.import_module("preprocess")
+# --- Import target modules from utils package ---
+serializers = importlib.import_module("utils.serializers")
+safe_pickle_mod = importlib.import_module("utils.safe_pickle")
+rules = importlib.import_module("utils.rules")
+preprocess = importlib.import_module("utils.preprocess")
 
 class TestSerializers(unittest.TestCase):
     def test_to_utc_various_inputs(self):
@@ -200,7 +205,6 @@ class TestPreprocess(unittest.TestCase):
         # Should preserve row count
         self.assertEqual(enc_df.shape[0], df.shape[0])
 
-
 class TestArtifactsLoader(unittest.TestCase):
     def setUp(self):
         # Create a minimal TensorFlow + Keras stub so that artifacts.py can import it
@@ -221,12 +225,11 @@ class TestArtifactsLoader(unittest.TestCase):
 
     def test_load_artifacts_from_context_with_mocks(self):
         # We will mock tf.keras.models.load_model and provide temp pickle files
-        import types
-        import importlib
-
-        # Create temporary artifacts
-        import tempfile, os
-        import numpy as np
+        import os
+        import pickle
+        import pandas as pd
+        import utils.artifacts as artifacts_mod  # <-- updated to utils.artifacts
+        import tensorflow as tf
 
         with tempfile.TemporaryDirectory() as tmp:
             keras_model_path = os.path.join(tmp, "ae.h5")
@@ -253,10 +256,6 @@ class TestArtifactsLoader(unittest.TestCase):
                     "year_gap_data_path": year_gap_path,
                 }
 
-            # Patch keras.models.load_model in the artifacts module only
-            import artifacts as artifacts_mod
-            import tensorflow as tf
-
             class DummyModel:
                 def __init__(self, name="dummy"): self.name = name
 
@@ -276,4 +275,6 @@ class TestArtifactsLoader(unittest.TestCase):
             self.assertTrue("a" in ae.year_gap_data.columns)
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    # Notebook/Databricks-safe: ignore kernel argv and avoid sys.exit()
+    argv = ["first-arg-is-ignored"]
+    unittest.main(argv=argv, exit=False, verbosity=2)
