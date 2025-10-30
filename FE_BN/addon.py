@@ -88,5 +88,30 @@ feats_valid_out.to_csv(os.path.join(OUT_DIR, "valid_engineered_with_scores.csv")
 
 
 
+def ae_predict_with_snapping(ae_model, X, feat_names,
+                             int_like_feats=("month", "quarter", "day_of_week", "day_of_month")):
+    """
+    AE predict + postprocess:
+    - run model.predict
+    - for each row, snap int-like features to nearest valid int
+    NOTE: this assumes those int-like features were NOT z-scored/minmaxed.
+    """
+    preds = ae_model.predict(X, batch_size=2048, verbose=0)
+    snapped = preds.copy()
+    for r in range(snapped.shape[0]):
+        for i, name in enumerate(feat_names):
+            base = name.split("_", 1)[0]
+            if base in int_like_feats:
+                v = float(snapped[r, i])
+                if base == "month":
+                    v = round(v); v = max(1, min(12, v))
+                elif base == "quarter":
+                    v = round(v); v = max(1, min(4, v))
+                elif base == "day_of_week":
+                    v = round(v); v = max(0, min(6, v))   # 0=Mon..6=Sun
+                elif base == "day_of_month":
+                    v = round(v); v = max(1, min(31, v))
+                snapped[r, i] = v
+    return snapped
 
 
