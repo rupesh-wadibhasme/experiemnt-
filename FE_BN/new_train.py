@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras import layers, regularizers, callbacks, optimizers, losses, Model
 
-from bank_features_training_xls import build_training_matrix_from_excel  # ensure import path
+#from bank_features_training_xls import build_training_matrix_from_excel  # ensure import path
 
 # =========================
 # CONFIG — edit paths/sizes
@@ -33,7 +33,7 @@ L2           = 1e-6
 DROPOUT      = 0.0
 LR           = 1e-3
 BATCH_SIZE   = 512
-EPOCHS       = 200
+EPOCHS       = 50
 PATIENCE     = 15
 THRESHOLD_PERCENTILE = 99.0
 
@@ -120,16 +120,27 @@ def plot_learning_curve(hist, out_png):
 def pick_threshold_from_validation(valid_errors: np.ndarray, percentile=99.0) -> float:
     return float(np.percentile(valid_errors, percentile))
 
+def topn_anomalies(df_scored: pd.DataFrame, score_col="recon_error", group_col=None, n=10):
+    """
+    If group_col is provided, returns top-n per group; else returns global top-n.
+    """
+    if group_col and group_col in df_scored.columns:
+        parts = []
+        for g, sub in df_scored.groupby(group_col):
+            parts.append(sub.nlargest(n, score_col))
+        return pd.concat(parts).sort_values(score_col, ascending=False)
+    return df_scored.nlargest(n, score_col)
+
 # =========================
 # Pipeline
 # =========================
-def run_pipeline():
+def run_pipeline(X_all, feats_all, feat_names):
     os.makedirs(OUT_DIR, exist_ok=True)
 
     # 1) Build full design matrix from 3-year history (consistent with inference path)
-    X_all, feats_all, feat_names = build_training_matrix_from_excel(
-        HISTORY_PATH, sheet_name=SHEET_NAME, one_hot=ONE_HOT
-    )
+    # X_all, feats_all, feat_names = build_training_matrix_from_excel(
+    #     HISTORY_PATH, sheet_name=SHEET_NAME, one_hot=ONE_HOT
+    # )
     assert X_all.shape[0] == len(feats_all), "Featureizer returned misaligned X_all vs feats_all."
     if "ts" not in feats_all.columns:
         raise ValueError("Expected 'ts' timestamp in engineered features.")
@@ -191,6 +202,20 @@ def run_pipeline():
     feats_train_out.to_csv(os.path.join(OUT_DIR, "train_engineered_with_scores.csv"), index=False)
     feats_valid_out.to_csv(os.path.join(OUT_DIR, "valid_engineered_with_scores.csv"), index=False)
 
+    # 8) Export top-N anomalies
+    top_global = topn_anomalies(feats_valid_out, score_col="recon_error", group_col=None, n=TOPN_PER_GROUP)
+    top_global.to_csv(os.path.join(OUT_DIR, "valid_topn_global.csv"), index=False)
+
+    # per-account & per-code (if present)
+    if "BankAccountCode" in feats_valid_out.columns:
+        top_per_acct = topn_anomalies(feats_valid_out, score_col="recon_error",
+                                      group_col="BankAccountCode", n=TOPN_PER_GROUP)
+        top_per_acct.to_csv(os.path.join(OUT_DIR, "valid_topn_per_account.csv"), index=False)
+    if "BankTransactionCode" in feats_valid_out.columns:
+        top_per_code = topn_anomalies(feats_valid_out, score_col="recon_error",
+                                      group_col="BankTransactionCode", n=TOPN_PER_GROUP)
+        top_per_code.to_csv(os.path.join(OUT_DIR, "valid_topn_per_txncode.csv"), index=False)
+
     print(f"[done] dim={input_dim}  final_val_loss={meta['final_val_loss']:.6f}  "
           f"thr@p{THRESHOLD_PERCENTILE}={thr:.6f}")
     print(f"Outputs in: {OUT_DIR} | Learning curve: {curve_path}")
@@ -199,4 +224,4 @@ def run_pipeline():
 # Run
 # =========================
 if __name__ == "__main__":
-    run_pipeline()
+    run_pipeline(X_train, feats_train, feat_names)
