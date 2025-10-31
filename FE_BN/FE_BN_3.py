@@ -208,7 +208,13 @@ def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFr
 
     feats = pd.concat(parts, ignore_index=True)
 
-    # zscore (numeric, but may become 0 if std=0)
+    #normalize possible _x / _y columns after merge_asof
+    if f"{ACCOUNT_COL}_x" in feats.columns:
+        feats.rename(columns={f"{ACCOUNT_COL}_x": ACCOUNT_COL}, inplace=True)
+    if f"{ACCOUNT_COL}_y" in feats.columns:
+        feats.drop(columns=[f"{ACCOUNT_COL}_y"], inplace=True)
+
+    # z-score
     feats["zscore_amount_30d"] = (
         (feats["amount"] - feats["mean_amount_30d"]) /
         feats["std_amount_30d"].replace(0, np.nan)
@@ -221,6 +227,7 @@ def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFr
         feats[["mean_amount_30d","std_amount_30d","avg_posting_lag_30d"]].fillna(0.0)
     )
     return feats
+
 
 # ========= Encoder abstraction =========
 @dataclass
