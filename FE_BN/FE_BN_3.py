@@ -26,21 +26,23 @@ import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, OrdinalEncoder
 
 # ========= Column map =========
-DATE_COL_VALUE = "ValueDateKey"                 # YYYYMMDD int/str
-DATE_COL_POST  = "PostingDateKey"               # YYYYMMDD int/str
-AMOUNT_COL     = "AmountInBankAccountCurrency"  # numeric
+DATE_COL_VALUE = "ValueDateKey"
+DATE_COL_POST  = "PostingDateKey"
+AMOUNT_COL     = "AmountInBankAccountCurrency"
 ACCOUNT_COL    = "BankAccountCode"
 CODE_COL       = "BankTransactionCode"
 BUSUNIT_COL    = "BusinessUnitCode"
 FLAG_CASHBOOK  = "CashBookFlag"
-FLAG_CURRDAY   = "IsCurrentDay"                 # will ignore
-MATCHED_REF    = "MatchedReference"
+FLAG_CURRDAY   = "IsCurrentDay"   # still read, we ignore later
+IS_MATCHED_COL = "IsMatched"      # ← use this, not MatchedReference
+
 
 REQUIRED_COLS = [
     DATE_COL_VALUE, DATE_COL_POST, AMOUNT_COL,
     ACCOUNT_COL, CODE_COL, BUSUNIT_COL, FLAG_CASHBOOK,
-    FLAG_CURRDAY, MATCHED_REF,
+    FLAG_CURRDAY, IS_MATCHED_COL,   # ← keep IsMatched
 ]
+
 OPTIONAL_COLS = ["BankTransactionId"]
 
 # base categoricals (from raw data)
@@ -64,23 +66,13 @@ def _amount_sign(x: float) -> int:
     return int((x > 0) - (x < 0))
 
 def _clean_categorical(s: pd.Series, name: str) -> pd.Series:
-    """
-    Normalize categoricals to robust strings.
-    """
     s = s.astype(object)
     s = s.replace({None: np.nan})
-    s = s.astype(str)
-    s = s.str.strip()
+    s = s.astype(str).str.strip()
     blanks = {"", "nan", "NaN", "None", "NULL", "null"}
-
-    if name == MATCHED_REF:
-        # ref: keep "0", blanks -> UNK
-        s = s.map(lambda x: "UNK" if x in blanks else x)
-    elif name == FLAG_CASHBOOK:
-        s = s.map(lambda x: "UNK" if x in blanks else x)
-    else:
-        s = s.map(lambda x: "UNK" if x in blanks else x)
+    s = s.map(lambda x: "UNK" if x in blanks else x)
     return s
+
 
 def drop_duplicate_txn_ids(df: pd.DataFrame, col: str = "BankTransactionId", keep: str = "first") -> pd.DataFrame:
     """
@@ -103,7 +95,7 @@ def _read_excel_selected(path: str, sheet_name=0, drop_dupes: bool = True) -> pd
         usecols=usecols,
         dtype={DATE_COL_VALUE: str, DATE_COL_POST: str},
     )
-    # required cols
+
     missing = [c for c in REQUIRED_COLS if c not in df.columns]
     if missing:
         raise ValueError(
@@ -111,14 +103,14 @@ def _read_excel_selected(path: str, sheet_name=0, drop_dupes: bool = True) -> pd
             f"Found columns: {list(df.columns)}"
         )
 
-    # drop dupes if present
     if drop_dupes:
         df = drop_duplicate_txn_ids(df, col="BankTransactionId", keep="first")
 
-    # clean categoricals
-    for col in [ACCOUNT_COL, CODE_COL, BUSUNIT_COL, FLAG_CASHBOOK, MATCHED_REF]:
+    # clean categoricals (no MatchedReference now)
+    for col in [ACCOUNT_COL, CODE_COL, BUSUNIT_COL, FLAG_CASHBOOK, IS_MATCHED_COL]:
         if col in df.columns:
             df[col] = _clean_categorical(df[col], col)
+
     return df
 
 # ========= Row-level features =========
@@ -133,19 +125,16 @@ def engineer_row_level(df: pd.DataFrame) -> pd.DataFrame:
     pst = _ensure_dt(out[DATE_COL_POST])
     out["posting_lag_days"] = (pst - val).dt.days.fillna(0).astype("int16")
 
-    # calendar — trimmed as per requirement
+    # calendar (trimmed)
     posting = pst.fillna(val)
     out["is_weekend"] = posting.dt.dayofweek.isin([5, 6]).astype("int8")
     out["month"]      = posting.dt.month.astype("int8")
     out["quarter"]    = posting.dt.quarter.astype("int8")
 
-    # matched ref — explicit 0 for NULL/UNK
-    out["has_matched_ref"] = (
-        out[MATCHED_REF].notna() &
-        out[MATCHED_REF].ne("UNK")
-    ).astype("int8")
+    # use source IsMatched as-is (already cleaned in reader)
+    out["is_matched_src"] = out.get(IS_MATCHED_COL, "UNK").astype(str)
 
-    # cashbook derived flag (but we’ll treat as categorical later)
+    # cashbook derived (still keep)
     out["cashbook_flag_derived"] = out[FLAG_CASHBOOK].str.lower().eq("cashbook").astype("int8")
 
     # same-amount-per-day per account
@@ -157,6 +146,8 @@ def engineer_row_level(df: pd.DataFrame) -> pd.DataFrame:
 
     out["ts"] = posting
     return out
+
+ 
 
 # ========= Baselines =========
 def compute_account_baselines(history_df: pd.DataFrame) -> pd.DataFrame:
@@ -263,9 +254,10 @@ EXTRA_CATEGORICAL_FEATURES = [
     "is_weekend",
     "month",
     "quarter",
-    "has_matched_ref",
+    "is_matched_src",       # ← from source
     "cashbook_flag_derived",
 ]
+
 
 def _fit_encoder(df_cat: pd.DataFrame, one_hot: bool):
     print('fitting encoder on categoricals')
