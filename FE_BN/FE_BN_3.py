@@ -395,26 +395,51 @@ def update_baselines_with_excel(batch_xlsx_path: str, sheet_name=0):
 def build_training_matrix_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bool=True):
     """
     Build full training design matrix from history using the same encoder/scaler as inference.
+    Side effect: artifacts already created by fit_featureizer_from_excel.
     """
+    # first fit + persist
     fit_featureizer_from_excel(history_xlsx_path, sheet_name=sheet_name, one_hot=one_hot)
 
+    # load artifacts
     with open(ENCODER_PATH, "rb") as f: enc = pickle.load(f)
     with open(ENCODER_META, "r") as f: enc_meta = json.load(f)
     with open(SCHEMA_PATH, "r") as f: schema = json.load(f)
     with open(SCALER_PATH, "rb") as f: scaler: StandardScaler = pickle.load(f)
 
+    # re-read history and merge with baselines
     hist = _read_excel_selected(history_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
     base = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
     feats = merge_with_baselines(hist, base)
 
-    X_num = feats[schema["numeric_cols"]].astype("float32").values
+    # ---------- numeric ----------
+    X_num = feats[schema["numeric_cols"]].astype("float32").copy()
+
+    # scale ONLY amount
+    amount_arr = X_num[["amount"]].values              # (n,1)
+    amount_scaled = scaler.transform(amount_arr)       # (n,1)
+
+    # keep other numeric as-is
+    other_num_cols = [c for c in schema["numeric_cols"] if c != "amount"]
+    X_other_num = X_num[other_num_cols].values         # (n,8)
+
+    # ---------- categoricals ----------
     df_cat = feats[BASE_CATEGORICAL_COLS].copy()
     for col in EXTRA_CATEGORICAL_FEATURES:
         df_cat[col] = feats[col].astype(str)
 
-    X_cat = _transform_with_encoder(enc, df_cat, one_hot=bool(enc_meta["one_hot"])).astype("float32")
-    X_num_std = scaler.transform(X_num)
-    X_final = np.hstack([X_num_std, X_cat]).astype("float32")
+    X_cat = _transform_with_encoder(
+        enc,
+        df_cat,
+        one_hot=bool(enc_meta["one_hot"])
+    ).astype("float32")
 
-    feature_names = schema["numeric_cols"] + schema["encoded_feature_names"]
+    # ---------- final ----------
+    X_final = np.hstack([
+        amount_scaled.astype("float32"),
+        X_other_num.astype("float32"),
+        X_cat
+    ]).astype("float32")
+
+    # feature names in correct order
+    feature_names = ["amount_scaled"] + other_num_cols + schema["encoded_feature_names"]
     return X_final, feats, feature_names
