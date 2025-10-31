@@ -287,6 +287,7 @@ def _transform_with_encoder(enc, df_cat: pd.DataFrame, one_hot: bool) -> np.ndar
     return enc.transform(df_cat)
 
 # ========= Public API =========
+
 def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bool=True) -> FitArtifacts:
     _mkdir(ART_DIR)
     hist = _read_excel_selected(history_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
@@ -296,10 +297,19 @@ def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bo
 
     feats = merge_with_baselines(hist, base)
 
-    # numeric
-    X_num = feats[NUMERIC_FEATURES].astype("float32").values
+    # 1) numeric
+    X_num = feats[NUMERIC_FEATURES].astype("float32").copy()
 
-    # categorical: raw + engineered cats
+    # 1a) fit scaler ONLY on amount
+    amount_arr = X_num[["amount"]].values  # shape (n, 1)
+    scaler = StandardScaler().fit(amount_arr)
+    amount_scaled = scaler.transform(amount_arr)  # shape (n, 1)
+
+    # other numeric (unscaled)
+    other_num_cols = [c for c in NUMERIC_FEATURES if c != "amount"]
+    X_other_num = X_num[other_num_cols].values  # raw values
+
+    # 2) categorical: raw + engineered
     df_cat = feats[BASE_CATEGORICAL_COLS].copy()
     for col in EXTRA_CATEGORICAL_FEATURES:
         df_cat[col] = feats[col].astype(str)
@@ -307,18 +317,17 @@ def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bo
     enc, enc_meta, cat_names = _fit_encoder(df_cat, one_hot=one_hot)
     X_cat = _transform_with_encoder(enc, df_cat, one_hot=one_hot).astype("float32")
 
-    # final matrix
-    X_scaled_num = StandardScaler().fit(X_num)
-    X_num_std = X_scaled_num.transform(X_num)
-    X = np.hstack([X_num_std, X_cat]).astype("float32")
+    # 3) final matrix: [amount_scaled | other_numeric_raw | encoded_cats]
+    X = np.hstack([amount_scaled.astype("float32"), X_other_num.astype("float32"), X_cat]).astype("float32")
 
-    # persist
+    # persist artifacts
     with open(ENCODER_PATH, "wb") as f: pickle.dump(enc, f)
     with open(ENCODER_META, "w") as f: json.dump(enc_meta, f, indent=2)
-    with open(SCALER_PATH, "wb") as f: pickle.dump(X_scaled_num, f)
+    with open(SCALER_PATH, "wb") as f: pickle.dump(scaler, f)
 
+    # schema: we must remember order
     schema = {
-        "numeric_cols": NUMERIC_FEATURES,
+        "numeric_cols": NUMERIC_FEATURES,  # original order
         "categorical_cols": BASE_CATEGORICAL_COLS + EXTRA_CATEGORICAL_FEATURES,
         "encoded_feature_names": cat_names
     }
@@ -326,12 +335,14 @@ def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bo
 
     return FitArtifacts(
         encoder=enc,
-        scaler=X_scaled_num,
+        scaler=scaler,
         numeric_cols=NUMERIC_FEATURES,
         categorical_cols=BASE_CATEGORICAL_COLS + EXTRA_CATEGORICAL_FEATURES,
-        all_feature_cols=NUMERIC_FEATURES + cat_names,
+        # final feature order == 1 scaled col + (len(NUMERIC_FEATURES)-1) raw + cats
+        all_feature_cols=["amount_scaled"] + other_num_cols + cat_names,
         one_hot=one_hot
     )
+
 
 def transform_excel_batch(batch_xlsx_path: str, sheet_name=0, one_hot: bool=True) -> Tuple[np.ndarray, pd.DataFrame, List[str]]:
     # load artifacts
