@@ -241,7 +241,7 @@ class FitArtifacts:
 
 # ============ FINAL FEATURE SPLIT ============
 
-# numeric (engineered) — as per your last message
+# numeric (engineered)
 NUMERIC_FEATURES = [
     "amount",
     "posting_lag_days",
@@ -253,6 +253,10 @@ NUMERIC_FEATURES = [
     "avg_posting_lag_30d",
     "zscore_amount_30d",
 ]
+
+# ONLY these will be scaled
+SCALE_NUM_COLS = ["amount","mean_amount_30d","std_amount_30d"]
+
 
 # categorical (raw + discrete engineered)
 EXTRA_CATEGORICAL_FEATURES = [
@@ -287,6 +291,36 @@ def _transform_with_encoder(enc, df_cat: pd.DataFrame, one_hot: bool) -> np.ndar
     return enc.transform(df_cat)
 
 # ========= Public API =========
+def _scale_numeric_block(df_num: pd.DataFrame, scale_cols: List[str]):
+    """
+    df_num: dataframe with ONLY numeric features (already float32).
+    scale_cols: subset of columns from df_num to scale.
+    returns:
+        scaled_part (np.array),
+        passthrough_cols (list),
+        passthrough_part (np.array),
+        scaler (fitted on scale_cols)
+    """
+    # validate
+    for c in scale_cols:
+        if c not in df_num.columns:
+            raise ValueError(f"Column {c} not in numeric features, cannot scale.")
+
+    if len(scale_cols) == 0:
+        # no scaling at all
+        scaled_part = np.empty((len(df_num), 0), dtype="float32")
+        passthrough_cols = list(df_num.columns)
+        passthrough_part = df_num.values.astype("float32")
+        scaler = None
+        return scaled_part, passthrough_cols, passthrough_part, scaler
+
+    scaler = StandardScaler().fit(df_num[scale_cols].values)
+    scaled_part = scaler.transform(df_num[scale_cols].values).astype("float32")
+
+    passthrough_cols = [c for c in df_num.columns if c not in scale_cols]
+    passthrough_part = df_num[passthrough_cols].values.astype("float32")
+
+    return scaled_part, passthrough_cols, passthrough_part, scaler
 
 def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bool=True) -> FitArtifacts:
     _mkdir(ART_DIR)
@@ -297,19 +331,14 @@ def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bo
 
     feats = merge_with_baselines(hist, base)
 
-    # 1) numeric
-    X_num = feats[NUMERIC_FEATURES].astype("float32").copy()
+    # ---- numeric (configurable scaling) ----
+    df_num = feats[NUMERIC_FEATURES].astype("float32").copy()
+    scaled_part, passthrough_cols, passthrough_part, scaler = _scale_numeric_block(
+        df_num,
+        SCALE_NUM_COLS,
+    )
 
-    # 1a) fit scaler ONLY on amount
-    amount_arr = X_num[["amount"]].values  # shape (n, 1)
-    scaler = StandardScaler().fit(amount_arr)
-    amount_scaled = scaler.transform(amount_arr)  # shape (n, 1)
-
-    # other numeric (unscaled)
-    other_num_cols = [c for c in NUMERIC_FEATURES if c != "amount"]
-    X_other_num = X_num[other_num_cols].values  # raw values
-
-    # 2) categorical: raw + engineered
+    # ---- categoricals ----
     df_cat = feats[BASE_CATEGORICAL_COLS].copy()
     for col in EXTRA_CATEGORICAL_FEATURES:
         df_cat[col] = feats[col].astype(str)
@@ -317,30 +346,34 @@ def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bo
     enc, enc_meta, cat_names = _fit_encoder(df_cat, one_hot=one_hot)
     X_cat = _transform_with_encoder(enc, df_cat, one_hot=one_hot).astype("float32")
 
-    # 3) final matrix: [amount_scaled | other_numeric_raw | encoded_cats]
-    X = np.hstack([amount_scaled.astype("float32"), X_other_num.astype("float32"), X_cat]).astype("float32")
+    # ---- final matrix ----
+    X = np.hstack([scaled_part, passthrough_part, X_cat]).astype("float32")
 
-    # persist artifacts
+    # ---- persist artifacts ----
     with open(ENCODER_PATH, "wb") as f: pickle.dump(enc, f)
     with open(ENCODER_META, "w") as f: json.dump(enc_meta, f, indent=2)
+    # scaler can be None if SCALE_NUM_COLS empty
     with open(SCALER_PATH, "wb") as f: pickle.dump(scaler, f)
 
-    # schema: we must remember order
     schema = {
-        "numeric_cols": NUMERIC_FEATURES,  # original order
+        "numeric_cols": NUMERIC_FEATURES,
+        "scale_numeric_cols": SCALE_NUM_COLS,
+        "passthrough_numeric_cols": passthrough_cols,
         "categorical_cols": BASE_CATEGORICAL_COLS + EXTRA_CATEGORICAL_FEATURES,
-        "encoded_feature_names": cat_names
+        "encoded_feature_names": cat_names,
     }
     with open(SCHEMA_PATH, "w") as f: json.dump(schema, f, indent=2)
+
+    # feature order we are actually feeding to model
+    all_feature_cols = [f"{c}_scaled" for c in SCALE_NUM_COLS] + passthrough_cols + cat_names
 
     return FitArtifacts(
         encoder=enc,
         scaler=scaler,
         numeric_cols=NUMERIC_FEATURES,
         categorical_cols=BASE_CATEGORICAL_COLS + EXTRA_CATEGORICAL_FEATURES,
-        # final feature order == 1 scaled col + (len(NUMERIC_FEATURES)-1) raw + cats
-        all_feature_cols=["amount_scaled"] + other_num_cols + cat_names,
-        one_hot=one_hot
+        all_feature_cols=all_feature_cols,
+        one_hot=one_hot,
     )
 
 
@@ -349,7 +382,7 @@ def transform_excel_batch(batch_xlsx_path: str, sheet_name=0, one_hot: bool=True
     with open(ENCODER_PATH, "rb") as f: enc = pickle.load(f)
     with open(ENCODER_META, "r") as f: enc_meta = json.load(f)
     with open(SCHEMA_PATH, "r") as f: schema = json.load(f)
-    with open(SCALER_PATH, "rb") as f: scaler: StandardScaler = pickle.load(f)
+    with open(SCALER_PATH, "rb") as f: scaler = pickle.load(f)  # may be None
 
     if bool(enc_meta.get("one_hot", True)) != bool(one_hot):
         raise ValueError(f"Requested one_hot={one_hot} but artifacts were fit with one_hot={enc_meta.get('one_hot')}.")
@@ -358,27 +391,30 @@ def transform_excel_batch(batch_xlsx_path: str, sheet_name=0, one_hot: bool=True
     batch = _read_excel_selected(batch_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
     feats = merge_with_baselines(batch, base)
 
-    # numeric
-    X_num = feats[schema["numeric_cols"]].astype("float32").copy()
-    amount_arr = X_num[["amount"]].values
-    amount_scaled = scaler.transform(amount_arr)  # shape (n,1)
+    # ---- numeric ----
+    df_num = feats[schema["numeric_cols"]].astype("float32").copy()
+    scale_cols = schema.get("scale_numeric_cols", [])
+    pass_cols = schema.get("passthrough_numeric_cols", [c for c in schema["numeric_cols"] if c not in scale_cols])
 
-    other_num_cols = [c for c in schema["numeric_cols"] if c != "amount"]
-    X_other_num = X_num[other_num_cols].values  # raw
+    if scaler is not None and len(scale_cols) > 0:
+        scaled_part = scaler.transform(df_num[scale_cols].values).astype("float32")
+    else:
+        scaled_part = np.empty((len(df_num), 0), dtype="float32")
 
-    # categorical
+    pass_part = df_num[pass_cols].values.astype("float32")
+
+    # ---- categorical ----
     df_cat = feats[BASE_CATEGORICAL_COLS].copy()
     for col in EXTRA_CATEGORICAL_FEATURES:
         df_cat[col] = feats[col].astype(str)
     X_cat = _transform_with_encoder(enc, df_cat, one_hot=one_hot).astype("float32")
 
-    # final
-    X_final = np.hstack([amount_scaled.astype("float32"), X_other_num.astype("float32"), X_cat]).astype("float32")
+    # ---- final ----
+    X_final = np.hstack([scaled_part, pass_part, X_cat]).astype("float32")
 
-    # feature names in the same order
-    feature_names = ["amount_scaled"] + other_num_cols + schema["encoded_feature_names"]
-
+    feature_names = [f"{c}_scaled" for c in scale_cols] + pass_cols + schema["encoded_feature_names"]
     return X_final, feats, feature_names
+
 
 
 def update_baselines_with_excel(batch_xlsx_path: str, sheet_name=0):
@@ -395,51 +431,44 @@ def update_baselines_with_excel(batch_xlsx_path: str, sheet_name=0):
 def build_training_matrix_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bool=True):
     """
     Build full training design matrix from history using the same encoder/scaler as inference.
-    Side effect: artifacts already created by fit_featureizer_from_excel.
     """
-    # first fit + persist
+    # ensure artifacts are created
     fit_featureizer_from_excel(history_xlsx_path, sheet_name=sheet_name, one_hot=one_hot)
 
     # load artifacts
     with open(ENCODER_PATH, "rb") as f: enc = pickle.load(f)
     with open(ENCODER_META, "r") as f: enc_meta = json.load(f)
     with open(SCHEMA_PATH, "r") as f: schema = json.load(f)
-    with open(SCALER_PATH, "rb") as f: scaler: StandardScaler = pickle.load(f)
+    with open(SCALER_PATH, "rb") as f: scaler = pickle.load(f)
 
-    # re-read history and merge with baselines
     hist = _read_excel_selected(history_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
     base = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
     feats = merge_with_baselines(hist, base)
 
-    # ---------- numeric ----------
-    X_num = feats[schema["numeric_cols"]].astype("float32").copy()
+    # ---- numeric ----
+    df_num = feats[schema["numeric_cols"]].astype("float32").copy()
+    scale_cols = schema.get("scale_numeric_cols", [])
+    pass_cols = schema.get("passthrough_numeric_cols", [c for c in schema["numeric_cols"] if c not in scale_cols])
 
-    # scale ONLY amount
-    amount_arr = X_num[["amount"]].values              # (n,1)
-    amount_scaled = scaler.transform(amount_arr)       # (n,1)
+    if scaler is not None and len(scale_cols) > 0:
+        scaled_part = scaler.transform(df_num[scale_cols].values).astype("float32")
+    else:
+        scaled_part = np.empty((len(df_num), 0), dtype="float32")
 
-    # keep other numeric as-is
-    other_num_cols = [c for c in schema["numeric_cols"] if c != "amount"]
-    X_other_num = X_num[other_num_cols].values         # (n,8)
+    pass_part = df_num[pass_cols].values.astype("float32")
 
-    # ---------- categoricals ----------
+    # ---- categorical ----
     df_cat = feats[BASE_CATEGORICAL_COLS].copy()
     for col in EXTRA_CATEGORICAL_FEATURES:
         df_cat[col] = feats[col].astype(str)
-
     X_cat = _transform_with_encoder(
         enc,
         df_cat,
         one_hot=bool(enc_meta["one_hot"])
     ).astype("float32")
 
-    # ---------- final ----------
-    X_final = np.hstack([
-        amount_scaled.astype("float32"),
-        X_other_num.astype("float32"),
-        X_cat
-    ]).astype("float32")
+    # ---- final ----
+    X_final = np.hstack([scaled_part, pass_part, X_cat]).astype("float32")
+    feature_names = [f"{c}_scaled" for c in scale_cols] + pass_cols + schema["encoded_feature_names"]
 
-    # feature names in correct order
-    feature_names = ["amount_scaled"] + other_num_cols + schema["encoded_feature_names"]
     return X_final, feats, feature_names
