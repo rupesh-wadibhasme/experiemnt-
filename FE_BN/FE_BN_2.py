@@ -212,13 +212,16 @@ NUMERIC_FEATURES = [
 ]
 
 def _fit_encoder(df_cat: pd.DataFrame, one_hot: bool):
-    if one_hot:
-        enc = OneHotEncoder(handle_unknown="ignore", sparse=False)
+    print('fitting encoder')
+    if one_hot==True:
+        print('one hot true')
+        enc = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
         enc.fit(df_cat)
         meta = {"type": "onehot", "one_hot": True}
         names = enc.get_feature_names_out(df_cat.columns).tolist()
         return enc, meta, names
     else:
+        print ('doing label encoding')
         # Label/ordinal encoding per column; unknowns -> -1
         enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
         enc.fit(df_cat)
