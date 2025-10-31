@@ -358,17 +358,28 @@ def transform_excel_batch(batch_xlsx_path: str, sheet_name=0, one_hot: bool=True
     batch = _read_excel_selected(batch_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
     feats = merge_with_baselines(batch, base)
 
-    X_num = feats[schema["numeric_cols"]].astype("float32").values
+    # numeric
+    X_num = feats[schema["numeric_cols"]].astype("float32").copy()
+    amount_arr = X_num[["amount"]].values
+    amount_scaled = scaler.transform(amount_arr)  # shape (n,1)
+
+    other_num_cols = [c for c in schema["numeric_cols"] if c != "amount"]
+    X_other_num = X_num[other_num_cols].values  # raw
+
+    # categorical
     df_cat = feats[BASE_CATEGORICAL_COLS].copy()
     for col in EXTRA_CATEGORICAL_FEATURES:
         df_cat[col] = feats[col].astype(str)
-
     X_cat = _transform_with_encoder(enc, df_cat, one_hot=one_hot).astype("float32")
-    X_num_std = scaler.transform(X_num)
 
-    X_final = np.hstack([X_num_std, X_cat]).astype("float32")
-    feature_names = schema["numeric_cols"] + schema["encoded_feature_names"]
+    # final
+    X_final = np.hstack([amount_scaled.astype("float32"), X_other_num.astype("float32"), X_cat]).astype("float32")
+
+    # feature names in the same order
+    feature_names = ["amount_scaled"] + other_num_cols + schema["encoded_feature_names"]
+
     return X_final, feats, feature_names
+
 
 def update_baselines_with_excel(batch_xlsx_path: str, sheet_name=0):
     base_old = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
