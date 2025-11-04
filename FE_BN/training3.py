@@ -1,471 +1,362 @@
-# bank_features_training_xls.py
-# Feature engineering + training/inference matrices for unsupervised anomaly detection (autoencoder)
-# Changes as per latest requirements:
-# 1. Drop rows with duplicate BankTransactionId
-# 2. has_matched_ref = 0 when MatchedReference is NULL/blank/UNK
-# 3. Do NOT create day_of_week / day_of_month
-# 4. Drop current_day_flag
-# 5. Treat ONLY these as numeric:
-#    amount,
-#    posting_lag_days,
-#    same_amount_count_per_day,
-#    txn_count_7d,
-#    txn_count_30d,
-#    mean_amount_30d,
-#    std_amount_30d,
-#    avg_posting_lag_30d,
-#    zscore_amount_30d
-#    ...everything else is categorical
+# ae_keras_full_detect.py
+# Autoencoder for bank-statement features (simple, end-to-end)
+# - build features
+# - time-based split -> train / valid
+# - train AE (Keras) with EarlyStopping
+# - SAVE learning curve
+# - learn threshold from VALID (p99)
+# - score ENTIRE dataset
+# - keep ONLY rows above threshold
+# - for each anomaly: which feature deviated most, actual/pred (scaled), best-effort original, human reason
 
-from __future__ import annotations
-import os, json, pickle
-from dataclasses import dataclass
-from typing import List, Tuple, Any
+import os
+import json
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, StandardScaler, OrdinalEncoder
+import matplotlib.pyplot as plt
+import pickle
 
-# ========= Column map =========
-DATE_COL_VALUE = "ValueDateKey"
-DATE_COL_POST  = "PostingDateKey"
-AMOUNT_COL     = "AmountInBankAccountCurrency"
-ACCOUNT_COL    = "BankAccountCode"
-CODE_COL       = "BankTransactionCode"
-BUSUNIT_COL    = "BusinessUnitCode"
-FLAG_CASHBOOK  = "CashBookFlag"
-FLAG_CURRDAY   = "IsCurrentDay"   # still read, we ignore later
-IS_MATCHED_COL = "IsMatched"      # ← use this, not MatchedReference
+import tensorflow as tf
+from tensorflow.keras import layers, regularizers, callbacks, optimizers, losses, Model
 
+#from bank_features_training_xls import build_training_matrix_from_excel  # your featureizer
 
-REQUIRED_COLS = [
-    DATE_COL_VALUE, DATE_COL_POST, AMOUNT_COL,
-    ACCOUNT_COL, CODE_COL, BUSUNIT_COL, FLAG_CASHBOOK,
-    FLAG_CURRDAY, IS_MATCHED_COL,   # ← keep IsMatched
-]
+# =========================
+# CONFIG
+# =========================
+HISTORY_PATH = "bank_history_3yrs.xlsx"
+OUT_DIR      = "ae_outputs_final"
+OUTPUT_CSV   = "ae_anomalies_only.csv"          # we save ONLY anomalies
+LEARNING_CURVE_PNG = "learning_curve.png"       # plot will be saved here
 
-OPTIONAL_COLS = ["BankTransactionId"]
+SHEET_NAME   = 0
+ONE_HOT      = False
 
-# base categoricals (from raw data)
-BASE_CATEGORICAL_COLS = [ACCOUNT_COL, CODE_COL, BUSUNIT_COL, FLAG_CASHBOOK]
+# split
+CUTOFF       = None       # e.g. "2025-06-30"; if None -> use VALID_FRAC
+VALID_FRAC   = 0.30
 
-# ========= Artifacts =========
-ART_DIR       = "artifacts_features"
-ENCODER_PATH  = os.path.join(ART_DIR, "encoder.pkl")
-ENCODER_META  = os.path.join(ART_DIR, "encoder_meta.json")
-SCALER_PATH   = os.path.join(ART_DIR, "standard_scaler.pkl")
-BASELINE_PATH = os.path.join(ART_DIR, "account_baselines.csv")
-SCHEMA_PATH   = os.path.join(ART_DIR, "feature_schema.json")
+# model/training
+SIZES        = (128, 64, 32)
+L2           = 1e-6
+DROPOUT      = 0.0
+LR           = 1e-3
+BATCH_SIZE   = 512
+EPOCHS       = 100
+PATIENCE     = 40
+THRESHOLD_PERCENTILE = 99.0
 
-# ========= Helpers =========
-def _mkdir(p: str): os.makedirs(p, exist_ok=True)
-
-def _ensure_dt(series: pd.Series) -> pd.Series:
-    return pd.to_datetime(series.astype(str), format="%Y%m%d", errors="coerce")
-
-def _amount_sign(x: float) -> int:
-    return int((x > 0) - (x < 0))
-
-def _clean_categorical(s: pd.Series, name: str) -> pd.Series:
-    s = s.astype(object)
-    s = s.replace({None: np.nan})
-    s = s.astype(str).str.strip()
-    blanks = {"", "nan", "NaN", "None", "NULL", "null"}
-    s = s.map(lambda x: "UNK" if x in blanks else x)
-    return s
+# optional scaler for inverse-transform
+SCALER_PATH  = "artifacts_features/standard_scaler.pkl"   # if not found, we'll keep orig=None
 
 
-def drop_duplicate_txn_ids(df: pd.DataFrame, col: str = "BankTransactionId", keep: str = "first") -> pd.DataFrame:
+# =========================
+# utilities
+# =========================
+
+def ae_predict_with_snapping(ae_model, X, feat_names,
+                             int_like_feats=("month", "quarter", "day_of_week", "day_of_month")):
     """
-    Drop duplicated bank transaction IDs; keep the first occurrence.
+    AE predict + postprocess:
+    - run model.predict
+    - for each row, snap int-like features to nearest valid int
+    NOTE: this assumes those int-like features were NOT z-scored/minmaxed.
     """
-    if col not in df.columns:
-        return df
-    before = len(df)
-    df = df.drop_duplicates(subset=[col], keep=keep)
-    after = len(df)
-    if after < before:
-        print(f"[INFO] Dropped {before - after} duplicate {col} rows.")
-    return df
+    preds = ae_model.predict(X, batch_size=2048, verbose=0)
+    # snapped = preds.copy()
+    # for r in range(snapped.shape[0]):
+    #     for i, name in enumerate(feat_names):
+    #         base = name.split("_", 1)[0]
+    #         if base in int_like_feats:
+    #             v = float(snapped[r, i])
+    #             if base == "month":
+    #                 v = round(v); v = max(1, min(12, v))
+    #             elif base == "quarter":
+    #                 v = round(v); v = max(1, min(4, v))
+    #             elif base == "day_of_week":
+    #                 v = round(v); v = max(0, min(6, v))   # 0=Mon..6=Sun
+    #             elif base == "day_of_month":
+    #                 v = round(v); v = max(1, min(31, v))
+    #             snapped[r, i] = v
+    return preds
 
-def _read_excel_selected(path: str, sheet_name=0, drop_dupes: bool = True) -> pd.DataFrame:
-    usecols = REQUIRED_COLS + [c for c in OPTIONAL_COLS if c not in REQUIRED_COLS]
-    df = pd.read_excel(
-        path,
-        sheet_name=sheet_name,
-        usecols=usecols,
-        dtype={DATE_COL_VALUE: str, DATE_COL_POST: str},
+
+def time_based_split(feats_df: pd.DataFrame, ts_col="ts", cutoff=None, valid_frac=0.30):
+    df = feats_df.sort_values(ts_col).reset_index(drop=True)
+    if cutoff:
+        cut = pd.to_datetime(cutoff)
+        train_mask = df[ts_col] < cut
+        valid_mask = ~train_mask
+    else:
+        n = len(df)
+        n_train = int(np.floor((1 - valid_frac) * n))
+        train_mask = pd.Series([True]*n_train + [False]*(n - n_train))
+        valid_mask = ~train_mask
+    return train_mask.values, valid_mask.values
+
+
+def reconstruction_errors(x_true: np.ndarray, x_pred: np.ndarray) -> np.ndarray:
+    return ((x_true - x_pred) ** 2).mean(axis=1)
+
+
+def make_autoencoder(input_dim: int,
+                     sizes=(128, 64, 32),
+                     l2=1e-6,
+                     dropout=0.0,
+                     lr=1e-3) -> Model:
+    inp = layers.Input(shape=(input_dim,), name="in")
+    x = layers.Dense(sizes[0], activation="relu", kernel_regularizer=regularizers.l2(l2))(inp)
+    if dropout > 0:
+        x = layers.Dropout(dropout)(x)
+    x = layers.Dense(sizes[1], activation="relu", kernel_regularizer=regularizers.l2(l2))(x)
+    bottleneck = layers.Dense(sizes[2], activation="relu", kernel_regularizer=regularizers.l2(l2),
+                              name="bottleneck")(x)
+    x = layers.Dense(sizes[1], activation="relu", kernel_regularizer=regularizers.l2(l2))(bottleneck)
+    if dropout > 0:
+        x = layers.Dropout(dropout)(x)
+    x = layers.Dense(sizes[0], activation="relu", kernel_regularizer=regularizers.l2(l2))(x)
+    out = layers.Dense(input_dim, activation=None, name="recon")(x)
+
+    ae = Model(inputs=inp, outputs=out, name="dense_autoencoder")
+    ae.compile(optimizer=optimizers.Adam(learning_rate=lr),
+               loss=losses.MeanSquaredError())
+    return ae
+
+
+def train_autoencoder(ae: Model,
+                      X_train: np.ndarray,
+                      X_valid: np.ndarray,
+                      batch_size=512,
+                      epochs=200,
+                      patience=15):
+    es = callbacks.EarlyStopping(monitor="val_loss",
+                                 patience=patience,
+                                 restore_best_weights=True,
+                                 verbose=1)
+    hist = ae.fit(
+        X_train, X_train,
+        validation_data=(X_valid, X_valid),
+        epochs=epochs,
+        batch_size=batch_size,
+        shuffle=True,
+        callbacks=[es],
+        verbose=1
     )
+    return hist, ae
 
-    missing = [c for c in REQUIRED_COLS if c not in df.columns]
-    if missing:
-        raise ValueError(
-            f"Missing required column(s) in {path}: {missing}\n"
-            f"Found columns: {list(df.columns)}"
+
+def plot_learning_curve(hist, out_path: str):
+    loss = hist.history.get("loss", [])
+    val_loss = hist.history.get("val_loss", [])
+    plt.figure(figsize=(7, 4))
+    plt.plot(loss, label="train loss")
+    plt.plot(val_loss, label="valid loss")
+    plt.title("Autoencoder Reconstruction Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE")
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+
+
+def pick_threshold_from_validation(valid_errors: np.ndarray, percentile=99.0):
+    return float(np.percentile(valid_errors, percentile))
+
+
+def load_scaler_if_any(path: str):
+    if os.path.exists(path):
+        try:
+            with open(path, "rb") as f:
+                return pickle.load(f)
+        except Exception:
+            return None
+    return None
+
+
+def inverse_single(scaler, feat_idx: int, val: float):
+    if scaler is None:
+        return None
+    if not hasattr(scaler, "mean_") or not hasattr(scaler, "scale_"):
+        return None
+    if feat_idx >= len(scaler.mean_):
+        return None
+    return val * scaler.scale_[feat_idx] + scaler.mean_[feat_idx]
+
+
+def make_reason_from_feature(feat_name: str,
+                             err_val: float,
+                             actual_orig,
+                             pred_orig):
+    # calendar-like
+    if feat_name == "month":
+        return (
+            f"transaction happened in unusual month (actual={actual_orig}, usually {pred_orig}) "
+            f"(err={err_val:.4f})"
+        )
+    if feat_name == "day_of_week":
+        weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        act = int(round(actual_orig)) if actual_orig is not None else None
+        pred = int(round(pred_orig)) if pred_orig is not None else None
+        act_txt = weekdays[act] if act is not None and 0 <= act < 7 else actual_orig
+        pred_txt = weekdays[pred] if pred is not None and 0 <= pred < 7 else pred_orig
+        return (
+            f"transaction happened on unusual weekday (actual={act_txt}, usual {pred_txt}) "
+            f"(err={err_val:.4f})"
+        )
+    if feat_name == "day_of_month":
+        return (
+            f"day of month was unusual (actual={actual_orig}, usually {pred_orig}) "
+            f"(err={err_val:.4f})"
+        )
+    if feat_name == "quarter":
+        return (
+            f"transaction quarter was unusual (actual={actual_orig}, usually {pred_orig}) "
+            f"(err={err_val:.4f})"
         )
 
-    if drop_dupes:
-        df = drop_duplicate_txn_ids(df, col="BankTransactionId", keep="first")
+    # z-score style
+    if feat_name == "zscore_amount_30d":
+        return (
+            "amount deviated strongly from this account's 30-day pattern "
+            f"(err={err_val:.4f})"
+        )
 
-    # clean categoricals (no MatchedReference now)
-    for col in [ACCOUNT_COL, CODE_COL, BUSUNIT_COL, FLAG_CASHBOOK, IS_MATCHED_COL]:
-        if col in df.columns:
-            df[col] = _clean_categorical(df[col], col)
-
-    return df
-
-# ========= Row-level features =========
-def engineer_row_level(df: pd.DataFrame) -> pd.DataFrame:
-    out = df.copy()
-
-    # numeric amount
-    out["amount"] = pd.to_numeric(out[AMOUNT_COL], errors="coerce").fillna(0.0)
-
-    # dates
-    val = _ensure_dt(out[DATE_COL_VALUE])
-    pst = _ensure_dt(out[DATE_COL_POST])
-    out["posting_lag_days"] = (pst - val).dt.days.abs().fillna(0).astype("int16")
-
-    # calendar (trimmed)
-    posting = pst.fillna(val)
-    out["is_weekend"] = posting.dt.dayofweek.isin([5, 6]).astype("int8")
-    out["month"]      = posting.dt.month.astype("int8")
-    out["quarter"]    = posting.dt.quarter.astype("int8")
-
-    # use source IsMatched as-is (already cleaned in reader)
-    out["is_matched_src"] = out.get(IS_MATCHED_COL, "UNK").astype(str)
-
-    # cashbook derived (still keep)
-    out["cashbook_flag_derived"] = out[FLAG_CASHBOOK].str.lower().eq("cashbook").astype("int8")
-
-    # same-amount-per-day per account
-    same_day = posting.dt.date
-    grp = out.groupby([ACCOUNT_COL, same_day, "amount"], dropna=False).size()
-    out["same_amount_count_per_day"] = grp.loc[
-        list(zip(out[ACCOUNT_COL], same_day, out["amount"]))
-    ].values.astype("int16")
-
-    out["ts"] = posting
-    return out
-
- 
-
-# ========= Baselines =========
-def compute_account_baselines(history_df: pd.DataFrame) -> pd.DataFrame:
-    df = engineer_row_level(history_df)
-    df = df.sort_values([ACCOUNT_COL, "ts"])
-
-    def _roll(g: pd.DataFrame) -> pd.DataFrame:
-        g = g.set_index("ts")
-        txn_count_7d  = g["amount"].rolling("7D").count().shift(1)
-        txn_count_30d = g["amount"].rolling("30D").count().shift(1)
-        mean_30d = g["amount"].rolling("30D").mean().shift(1)
-        std_30d  = g["amount"].rolling("30D").std(ddof=1).shift(1)
-        avg_lag_30d = g["posting_lag_days"].rolling("30D").mean().shift(1)
-        return (pd.DataFrame({
-            "txn_count_7d": txn_count_7d,
-            "txn_count_30d": txn_count_30d,
-            "mean_amount_30d": mean_30d,
-            "std_amount_30d": std_30d,
-            "avg_posting_lag_30d": avg_lag_30d,
-        }).reset_index())
-
-    base = (
-        df.groupby(ACCOUNT_COL, group_keys=True)
-          .apply(_roll)
-          .reset_index(level=0)
-          .rename(columns={ACCOUNT_COL: ACCOUNT_COL})
-    )
-    return base
-
-def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFrame:
-    df = engineer_row_level(df)
-    df["ts"] = pd.to_datetime(df["ts"])
-    baselines["ts"] = pd.to_datetime(baselines["ts"])
-
-    parts = []
-    for acct, g in df.groupby(ACCOUNT_COL):
-        left = g.sort_values("ts")
-        right = baselines[baselines[ACCOUNT_COL] == acct].sort_values("ts")
-        if right.empty:
-            merged = left.copy()
-            merged["txn_count_7d"] = 0
-            merged["txn_count_30d"] = 0
-            merged["mean_amount_30d"] = 0.0
-            merged["std_amount_30d"] = 0.0
-            merged["avg_posting_lag_30d"] = 0.0
-        else:
-            merged = pd.merge_asof(left, right, on="ts", direction="backward")
-        parts.append(merged)
-
-    feats = pd.concat(parts, ignore_index=True)
-
-    #normalize possible _x / _y columns after merge_asof
-    if f"{ACCOUNT_COL}_x" in feats.columns:
-        feats.rename(columns={f"{ACCOUNT_COL}_x": ACCOUNT_COL}, inplace=True)
-    if f"{ACCOUNT_COL}_y" in feats.columns:
-        feats.drop(columns=[f"{ACCOUNT_COL}_y"], inplace=True)
-
-    # z-score
-    feats["zscore_amount_30d"] = (
-        (feats["amount"] - feats["mean_amount_30d"]) /
-        feats["std_amount_30d"].replace(0, np.nan)
-    )
-    feats["zscore_amount_30d"] = feats["zscore_amount_30d"].fillna(0.0).astype("float32")
-
-    # cold start fill
-    feats[["txn_count_7d","txn_count_30d"]] = feats[["txn_count_7d","txn_count_30d"]].fillna(0)
-    feats[["mean_amount_30d","std_amount_30d","avg_posting_lag_30d"]] = (
-        feats[["mean_amount_30d","std_amount_30d","avg_posting_lag_30d"]].fillna(0.0)
-    )
-    return feats
-
-
-# ========= Encoder abstraction =========
-@dataclass
-class FitArtifacts:
-    encoder: Any
-    scaler: StandardScaler
-    numeric_cols: List[str]
-    categorical_cols: List[str]
-    all_feature_cols: List[str]
-    one_hot: bool
-
-# ============ FINAL FEATURE SPLIT ============
-
-# numeric (engineered)
-NUMERIC_FEATURES = [
-    "amount",
-    "posting_lag_days",
-    "same_amount_count_per_day",
-    "txn_count_7d",
-    "txn_count_30d",
-    "mean_amount_30d",
-    "std_amount_30d",
-    "avg_posting_lag_30d",
-    "zscore_amount_30d","month",
-                    "quarter",
-                    "is_matched_src", 
-                    "cashbook_flag_derived"
-]
-
-# ONLY these will be scaled
-SCALE_NUM_COLS = NUMERIC_FEATURES
-
-# ["amount","mean_amount_30d","std_amount_30d",
-#                   "month",
-#                     "quarter",
-#                     "is_matched_src", 
-#                     "cashbook_flag_derived"]
-
-
-# categorical (raw + discrete engineered)
-EXTRA_CATEGORICAL_FEATURES = [
-    "is_weekend"
-]
-
-
-def _fit_encoder(df_cat: pd.DataFrame, one_hot: bool):
-    print('fitting encoder on categoricals')
-    if one_hot:
-        enc = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
-        enc.fit(df_cat)
-        meta = {"type": "onehot", "one_hot": True}
-        names = enc.get_feature_names_out(df_cat.columns).tolist()
-        return enc, meta, names
-    else:
-        enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
-        enc.fit(df_cat)
-        meta = {
-            "type": "ordinal",
-            "one_hot": False,
-            "categories": [list(c) for c in enc.categories_],
-            "columns": list(df_cat.columns)
-        }
-        names = list(df_cat.columns)
-        return enc, meta, names
-
-def _transform_with_encoder(enc, df_cat: pd.DataFrame, one_hot: bool) -> np.ndarray:
-    return enc.transform(df_cat)
-
-# ========= Public API =========
-def _scale_numeric_block(df_num: pd.DataFrame, scale_cols: List[str]):
-    """
-    df_num: dataframe with ONLY numeric features (already float32).
-    scale_cols: subset of columns from df_num to scale.
-    returns:
-        scaled_part (np.array),
-        passthrough_cols (list),
-        passthrough_part (np.array),
-        scaler (fitted on scale_cols)
-    """
-    # validate
-    for c in scale_cols:
-        if c not in df_num.columns:
-            raise ValueError(f"Column {c} not in numeric features, cannot scale.")
-
-    if len(scale_cols) == 0:
-        # no scaling at all
-        scaled_part = np.empty((len(df_num), 0), dtype="float32")
-        passthrough_cols = list(df_num.columns)
-        passthrough_part = df_num.values.astype("float32")
-        scaler = None
-        return scaled_part, passthrough_cols, passthrough_part, scaler
-
-    scaler = StandardScaler().fit(df_num[scale_cols].values)
-    scaled_part = scaler.transform(df_num[scale_cols].values).astype("float32")
-
-    passthrough_cols = [c for c in df_num.columns if c not in scale_cols]
-    passthrough_part = df_num[passthrough_cols].values.astype("float32")
-
-    return scaled_part, passthrough_cols, passthrough_part, scaler
-
-def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bool=True) -> FitArtifacts:
-    _mkdir(ART_DIR)
-    hist = _read_excel_selected(history_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
-
-    base = compute_account_baselines(hist)
-    base.to_csv(BASELINE_PATH, index=False)
-
-    feats = merge_with_baselines(hist, base)
-
-    # ---- numeric (configurable scaling) ----
-    df_num = feats[NUMERIC_FEATURES].astype("float32").copy()
-    scaled_part, passthrough_cols, passthrough_part, scaler = _scale_numeric_block(
-        df_num,
-        SCALE_NUM_COLS,
-    )
-
-    # ---- categoricals ----
-    df_cat = feats[BASE_CATEGORICAL_COLS].copy()
-    for col in EXTRA_CATEGORICAL_FEATURES:
-        df_cat[col] = feats[col].astype(str)
-
-    enc, enc_meta, cat_names = _fit_encoder(df_cat, one_hot=one_hot)
-    X_cat = _transform_with_encoder(enc, df_cat, one_hot=one_hot).astype("float32")
-
-    # ---- final matrix ----
-    X = np.hstack([scaled_part, passthrough_part, X_cat]).astype("float32")
-
-    # ---- persist artifacts ----
-    with open(ENCODER_PATH, "wb") as f: pickle.dump(enc, f)
-    with open(ENCODER_META, "w") as f: json.dump(enc_meta, f, indent=2)
-    # scaler can be None if SCALE_NUM_COLS empty
-    with open(SCALER_PATH, "wb") as f: pickle.dump(scaler, f)
-
-    schema = {
-        "numeric_cols": NUMERIC_FEATURES,
-        "scale_numeric_cols": SCALE_NUM_COLS,
-        "passthrough_numeric_cols": passthrough_cols,
-        "categorical_cols": BASE_CATEGORICAL_COLS + EXTRA_CATEGORICAL_FEATURES,
-        "encoded_feature_names": cat_names,
+    # general helpers
+    nicenames = {
+        "amount": "amount was unusual",
+        "amount_log": "amount (log) was unusual",
+        "amount_sign": "transaction direction was unusual",
+        "posting_lag_days": "posting lag was unusual",
+        "same_amount_count_per_day": "same-amount count today was unusual",
+        "txn_count_7d": "7-day txn volume was unusual",
+        "txn_count_30d": "30-day txn volume was unusual",
+        "mean_amount_30d": "30-day average amount was unusual",
+        "std_amount_30d": "30-day volatility was unusual",
+        "has_matched_ref": "matched reference looked unusual",
+        "cashbook_flag": "cashbook flag looked unusual",
     }
-    with open(SCHEMA_PATH, "w") as f: json.dump(schema, f, indent=2)
+    if feat_name in nicenames:
+        extra = ""
+        if actual_orig is not None and pred_orig is not None:
+            extra = f" (actual={actual_orig}, predicted≈{pred_orig})"
+        return f"{nicenames[feat_name]}{extra} (err={err_val:.4f})"
 
-    # feature order we are actually feeding to model
-    all_feature_cols = [f"{c}_scaled" for c in SCALE_NUM_COLS] + passthrough_cols + cat_names
+    # one-hot-ish
+    if "_" in feat_name:
+        prefix, rest = feat_name.split("_", 1)
+        if prefix in ("BankAccountCode", "BankTransactionCode", "BusinessUnitCode", "CashBookFlag"):
+            return f"{prefix}='{rest}' contributed most (err={err_val:.4f})"
 
-    return FitArtifacts(
-        encoder=enc,
-        scaler=scaler,
-        numeric_cols=NUMERIC_FEATURES,
-        categorical_cols=BASE_CATEGORICAL_COLS + EXTRA_CATEGORICAL_FEATURES,
-        all_feature_cols=all_feature_cols,
-        one_hot=one_hot,
+    return f"{feat_name} contributed most (err={err_val:.4f})"
+
+
+# =========================
+# main pipeline
+# =========================
+def run_pipeline(X_all, feats_all, feat_names):
+    os.makedirs(OUT_DIR, exist_ok=True)
+
+    # 1) features
+    # X_all, feats_all, feat_names = build_training_matrix_from_excel(
+    #     HISTORY_PATH, sheet_name=SHEET_NAME, one_hot=ONE_HOT
+    # )
+    if "ts" not in feats_all.columns:
+        raise ValueError("Expected 'ts' in engineered features")
+
+    # 2) split
+    train_mask, valid_mask = time_based_split(
+        feats_all, ts_col="ts", cutoff=CUTOFF, valid_frac=VALID_FRAC
     )
+    X_train, X_valid = X_all[train_mask], X_all[valid_mask]
 
+    # 3) train AE
+    input_dim = X_all.shape[1]
+    ae = make_autoencoder(input_dim, sizes=SIZES, l2=L2, dropout=DROPOUT, lr=LR)
+    hist, ae = train_autoencoder(ae, X_train, X_valid,
+                                 batch_size=BATCH_SIZE,
+                                 epochs=EPOCHS,
+                                 patience=PATIENCE)
 
-def transform_excel_batch(batch_xlsx_path: str, sheet_name=0, one_hot: bool=True) -> Tuple[np.ndarray, pd.DataFrame, List[str]]:
-    # load artifacts
-    with open(ENCODER_PATH, "rb") as f: enc = pickle.load(f)
-    with open(ENCODER_META, "r") as f: enc_meta = json.load(f)
-    with open(SCHEMA_PATH, "r") as f: schema = json.load(f)
-    with open(SCALER_PATH, "rb") as f: scaler = pickle.load(f)  # may be None
+    # 3b) save learning curve
+    plot_learning_curve(hist, os.path.join(OUT_DIR, LEARNING_CURVE_PNG))
 
-    if bool(enc_meta.get("one_hot", True)) != bool(one_hot):
-        raise ValueError(f"Requested one_hot={one_hot} but artifacts were fit with one_hot={enc_meta.get('one_hot')}.")
+    # 4) score VALID to get threshold
+    #pred_valid = ae.predict(X_valid, batch_size=2048, verbose=0)
+    pred_valid = ae_predict_with_snapping(ae,X_valid, feat_names)
+    valid_err = reconstruction_errors(X_valid, pred_valid)
+    thr = pick_threshold_from_validation(valid_err, percentile=THRESHOLD_PERCENTILE)
 
-    base = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
-    batch = _read_excel_selected(batch_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
-    feats = merge_with_baselines(batch, base)
+    # 5) score ENTIRE dataset
+    #pred_all = ae.predict(X_all, batch_size=2048, verbose=0)
+    pred_all = ae_predict_with_snapping(ae,X_all, feat_names)
+    all_err = reconstruction_errors(X_all, pred_all)
 
-    # ---- numeric ----
-    df_num = feats[schema["numeric_cols"]].astype("float32").copy()
-    scale_cols = schema.get("scale_numeric_cols", [])
-    pass_cols = schema.get("passthrough_numeric_cols", [c for c in schema["numeric_cols"] if c not in scale_cols])
+    # 6) per-feature deviation
+    all_sqerr = (X_all - pred_all) ** 2
+    all_max_idx = np.argmax(all_sqerr, axis=1)
+    all_top_feat = [feat_names[i] for i in all_max_idx]
+    all_top_feat_err = all_sqerr[np.arange(len(all_max_idx)), all_max_idx]
+    all_top_actual_scaled = X_all[np.arange(len(all_max_idx)), all_max_idx]
+    all_top_pred_scaled   = pred_all[np.arange(len(all_max_idx)), all_max_idx]
 
-    if scaler is not None and len(scale_cols) > 0:
-        scaled_part = scaler.transform(df_num[scale_cols].values).astype("float32")
-    else:
-        scaled_part = np.empty((len(df_num), 0), dtype="float32")
+    # 7) inverse scaling (best effort)
+    scaler = load_scaler_if_any(SCALER_PATH)
+    all_top_actual_orig, all_top_pred_orig = [], []
+    for idx, a_s, p_s in zip(all_max_idx, all_top_actual_scaled, all_top_pred_scaled):
+        a_o = inverse_single(scaler, idx, a_s)
+        p_o = inverse_single(scaler, idx, p_s)
+        all_top_actual_orig.append(a_o)
+        all_top_pred_orig.append(p_o)
 
-    pass_part = df_num[pass_cols].values.astype("float32")
+    # 8) build reasons
+    all_reasons = [
+        make_reason_from_feature(f, e, a_o, p_o)
+        for f, e, a_o, p_o in zip(
+            all_top_feat, all_top_feat_err, all_top_actual_orig, all_top_pred_orig
+        )
+    ]
 
-    # ---- categorical ----
-    df_cat = feats[BASE_CATEGORICAL_COLS].copy()
-    for col in EXTRA_CATEGORICAL_FEATURES:
-        df_cat[col] = feats[col].astype(str)
-    X_cat = _transform_with_encoder(enc, df_cat, one_hot=one_hot).astype("float32")
+    # 9) attach to full DF
+    feats_all_out = feats_all.copy()
+    feats_all_out["recon_error"] = all_err
+    feats_all_out["is_anomaly"] = (all_err >= thr).astype(int)
+    feats_all_out["top_feature"] = all_top_feat
+    feats_all_out["top_feature_error"] = all_top_feat_err
+    feats_all_out["top_feature_actual_scaled"] = all_top_actual_scaled
+    feats_all_out["top_feature_pred_scaled"] = all_top_pred_scaled
+    feats_all_out["top_feature_actual_orig"] = all_top_actual_orig
+    feats_all_out["top_feature_pred_orig"] = all_top_pred_orig
+    feats_all_out["contrib_reason"] = all_reasons
 
-    # ---- final ----
-    X_final = np.hstack([scaled_part, pass_part, X_cat]).astype("float32")
-
-    feature_names = [f"{c}_scaled" for c in scale_cols] + pass_cols + schema["encoded_feature_names"]
-    return X_final, feats, feature_names
-
-
-
-def update_baselines_with_excel(batch_xlsx_path: str, sheet_name=0):
-    base_old = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
-    new_df = _read_excel_selected(batch_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
-    base_new = compute_account_baselines(new_df)
-    base_all = (
-        pd.concat([base_old, base_new], ignore_index=True)
-          .sort_values([ACCOUNT_COL, "ts"])
-          .drop_duplicates([ACCOUNT_COL, "ts"], keep="last")
+    # 10) SAVE ONLY ANOMALIES
+    anomalies_only = (
+        feats_all_out[feats_all_out["is_anomaly"] == 1]
+        .sort_values("recon_error", ascending=False)
+        .reset_index(drop=True)
     )
-    base_all.to_csv(BASELINE_PATH, index=False)
+    anomalies_only.to_csv(os.path.join(OUT_DIR, OUTPUT_CSV), index=False)
 
-def build_training_matrix_from_excel(history_xlsx_path: str, sheet_name=0, one_hot: bool=True):
-    """
-    Build full training design matrix from history using the same encoder/scaler as inference.
-    """
-    # ensure artifacts are created
-    fit_featureizer_from_excel(history_xlsx_path, sheet_name=sheet_name, one_hot=one_hot)
+    # save meta
+    meta = dict(
+        threshold=float(thr),
+        threshold_percentile=float(THRESHOLD_PERCENTILE),
+        total_rows=int(len(feats_all_out)),
+        total_anomalies=int(len(anomalies_only)),
+        feature_names=feat_names,
+        learning_curve=os.path.join(OUT_DIR, LEARNING_CURVE_PNG),
+    )
+    with open(os.path.join(OUT_DIR, "ae_meta.json"), "w") as f:
+        json.dump(meta, f, indent=2)
 
-    # load artifacts
-    with open(ENCODER_PATH, "rb") as f: enc = pickle.load(f)
-    with open(ENCODER_META, "r") as f: enc_meta = json.load(f)
-    with open(SCHEMA_PATH, "r") as f: schema = json.load(f)
-    with open(SCALER_PATH, "rb") as f: scaler = pickle.load(f)
+    print(f"[done] rows={len(feats_all_out)} anomalies={len(anomalies_only)} thr={thr:.6f}")
+    print(f"saved anomalies: {os.path.join(OUT_DIR, OUTPUT_CSV)}")
+    print(f"learning curve: {os.path.join(OUT_DIR, LEARNING_CURVE_PNG)}")
 
-    hist = _read_excel_selected(history_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
-    base = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
-    feats = merge_with_baselines(hist, base)
 
-    # ---- numeric ----
-    df_num = feats[schema["numeric_cols"]].astype("float32").copy()
-    scale_cols = schema.get("scale_numeric_cols", [])
-    pass_cols = schema.get("passthrough_numeric_cols", [c for c in schema["numeric_cols"] if c not in scale_cols])
-
-    if scaler is not None and len(scale_cols) > 0:
-        scaled_part = scaler.transform(df_num[scale_cols].values).astype("float32")
-    else:
-        scaled_part = np.empty((len(df_num), 0), dtype="float32")
-
-    pass_part = df_num[pass_cols].values.astype("float32")
-
-    # ---- categorical ----
-    df_cat = feats[BASE_CATEGORICAL_COLS].copy()
-    for col in EXTRA_CATEGORICAL_FEATURES:
-        df_cat[col] = feats[col].astype(str)
-    X_cat = _transform_with_encoder(
-        enc,
-        df_cat,
-        one_hot=bool(enc_meta["one_hot"])
-    ).astype("float32")
-
-    # ---- final ----
-    X_final = np.hstack([scaled_part, pass_part, X_cat]).astype("float32")
-    feature_names = [f"{c}_scaled" for c in scale_cols] + pass_cols + schema["encoded_feature_names"]
-
-    return X_final, feats, feature_names
+# =========================
+# run
+# =========================
+if __name__ == "__main__":
+    run_pipeline(X_train, feats_train, feat_names)
