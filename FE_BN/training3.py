@@ -30,11 +30,11 @@ OUTPUT_CSV   = "ae_anomalies_only.csv"          # we save ONLY anomalies
 LEARNING_CURVE_PNG = "learning_curve.png"       # plot will be saved here
 
 SHEET_NAME   = 0
-ONE_HOT      = True
+ONE_HOT      = False
 
 # split
 CUTOFF       = None       # e.g. "2025-06-30"; if None -> use VALID_FRAC
-VALID_FRAC   = 0.15
+VALID_FRAC   = 0.30
 
 # model/training
 SIZES        = (128, 64, 32)
@@ -42,8 +42,8 @@ L2           = 1e-6
 DROPOUT      = 0.0
 LR           = 1e-3
 BATCH_SIZE   = 512
-EPOCHS       = 5
-PATIENCE     = 8
+EPOCHS       = 100
+PATIENCE     = 40
 THRESHOLD_PERCENTILE = 99.0
 
 # optional scaler for inverse-transform
@@ -81,7 +81,7 @@ def ae_predict_with_snapping(ae_model, X, feat_names,
     return preds
 
 
-def time_based_split(feats_df: pd.DataFrame, ts_col="ts", cutoff=None, valid_frac=0.15):
+def time_based_split(feats_df: pd.DataFrame, ts_col="ts", cutoff=None, valid_frac=0.30):
     df = feats_df.sort_values(ts_col).reset_index(drop=True)
     if cutoff:
         cut = pd.to_datetime(cutoff)
@@ -290,7 +290,7 @@ def run_pipeline(X_all, feats_all, feat_names):
 
     # 5) score ENTIRE dataset
     #pred_all = ae.predict(X_all, batch_size=2048, verbose=0)
-    pred_all = ae_predict_with_snapping(ae,X_valid, feat_names)
+    pred_all = ae_predict_with_snapping(ae,X_all, feat_names)
     all_err = reconstruction_errors(X_all, pred_all)
 
     # 6) per-feature deviation
