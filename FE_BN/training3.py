@@ -19,7 +19,7 @@ import pickle
 import tensorflow as tf
 from tensorflow.keras import layers, regularizers, callbacks, optimizers, losses, Model
 
-from bank_features_training_xls import build_training_matrix_from_excel  # your featureizer
+#from bank_features_training_xls import build_training_matrix_from_excel  # your featureizer
 
 # =========================
 # CONFIG
@@ -42,17 +42,45 @@ L2           = 1e-6
 DROPOUT      = 0.0
 LR           = 1e-3
 BATCH_SIZE   = 512
-EPOCHS       = 200
-PATIENCE     = 15
+EPOCHS       = 5
+PATIENCE     = 8
 THRESHOLD_PERCENTILE = 99.0
 
 # optional scaler for inverse-transform
-SCALER_PATH  = "feature_scaler.pkl"   # if not found, we'll keep orig=None
+SCALER_PATH  = "artifacts_features/standard_scaler.pkl"   # if not found, we'll keep orig=None
 
 
 # =========================
 # utilities
 # =========================
+
+def ae_predict_with_snapping(ae_model, X, feat_names,
+                             int_like_feats=("month", "quarter", "day_of_week", "day_of_month")):
+    """
+    AE predict + postprocess:
+    - run model.predict
+    - for each row, snap int-like features to nearest valid int
+    NOTE: this assumes those int-like features were NOT z-scored/minmaxed.
+    """
+    preds = ae_model.predict(X, batch_size=2048, verbose=0)
+    # snapped = preds.copy()
+    # for r in range(snapped.shape[0]):
+    #     for i, name in enumerate(feat_names):
+    #         base = name.split("_", 1)[0]
+    #         if base in int_like_feats:
+    #             v = float(snapped[r, i])
+    #             if base == "month":
+    #                 v = round(v); v = max(1, min(12, v))
+    #             elif base == "quarter":
+    #                 v = round(v); v = max(1, min(4, v))
+    #             elif base == "day_of_week":
+    #                 v = round(v); v = max(0, min(6, v))   # 0=Mon..6=Sun
+    #             elif base == "day_of_month":
+    #                 v = round(v); v = max(1, min(31, v))
+    #             snapped[r, i] = v
+    return preds
+
+
 def time_based_split(feats_df: pd.DataFrame, ts_col="ts", cutoff=None, valid_frac=0.15):
     df = feats_df.sort_values(ts_col).reset_index(drop=True)
     if cutoff:
@@ -164,7 +192,7 @@ def make_reason_from_feature(feat_name: str,
     # calendar-like
     if feat_name == "month":
         return (
-            f"transaction happened in unusual month (actual={actual_orig}, usually≈{pred_orig}) "
+            f"transaction happened in unusual month (actual={actual_orig}, usually {pred_orig}) "
             f"(err={err_val:.4f})"
         )
     if feat_name == "day_of_week":
@@ -174,17 +202,17 @@ def make_reason_from_feature(feat_name: str,
         act_txt = weekdays[act] if act is not None and 0 <= act < 7 else actual_orig
         pred_txt = weekdays[pred] if pred is not None and 0 <= pred < 7 else pred_orig
         return (
-            f"transaction happened on unusual weekday (actual={act_txt}, usual≈{pred_txt}) "
+            f"transaction happened on unusual weekday (actual={act_txt}, usual {pred_txt}) "
             f"(err={err_val:.4f})"
         )
     if feat_name == "day_of_month":
         return (
-            f"day of month was unusual (actual={actual_orig}, usually≈{pred_orig}) "
+            f"day of month was unusual (actual={actual_orig}, usually {pred_orig}) "
             f"(err={err_val:.4f})"
         )
     if feat_name == "quarter":
         return (
-            f"transaction quarter was unusual (actual={actual_orig}, usually≈{pred_orig}) "
+            f"transaction quarter was unusual (actual={actual_orig}, usually {pred_orig}) "
             f"(err={err_val:.4f})"
         )
 
@@ -227,13 +255,13 @@ def make_reason_from_feature(feat_name: str,
 # =========================
 # main pipeline
 # =========================
-def run_pipeline():
+def run_pipeline(X_all, feats_all, feat_names):
     os.makedirs(OUT_DIR, exist_ok=True)
 
     # 1) features
-    X_all, feats_all, feat_names = build_training_matrix_from_excel(
-        HISTORY_PATH, sheet_name=SHEET_NAME, one_hot=ONE_HOT
-    )
+    # X_all, feats_all, feat_names = build_training_matrix_from_excel(
+    #     HISTORY_PATH, sheet_name=SHEET_NAME, one_hot=ONE_HOT
+    # )
     if "ts" not in feats_all.columns:
         raise ValueError("Expected 'ts' in engineered features")
 
@@ -255,12 +283,14 @@ def run_pipeline():
     plot_learning_curve(hist, os.path.join(OUT_DIR, LEARNING_CURVE_PNG))
 
     # 4) score VALID to get threshold
-    pred_valid = ae.predict(X_valid, batch_size=2048, verbose=0)
+    #pred_valid = ae.predict(X_valid, batch_size=2048, verbose=0)
+    pred_valid = ae_predict_with_snapping(ae,X_valid, feat_names)
     valid_err = reconstruction_errors(X_valid, pred_valid)
     thr = pick_threshold_from_validation(valid_err, percentile=THRESHOLD_PERCENTILE)
 
     # 5) score ENTIRE dataset
-    pred_all = ae.predict(X_all, batch_size=2048, verbose=0)
+    #pred_all = ae.predict(X_all, batch_size=2048, verbose=0)
+    pred_all = ae_predict_with_snapping(ae,X_valid, feat_names)
     all_err = reconstruction_errors(X_all, pred_all)
 
     # 6) per-feature deviation
@@ -329,4 +359,4 @@ def run_pipeline():
 # run
 # =========================
 if __name__ == "__main__":
-    run_pipeline()
+    run_pipeline(X_train, feats_train, feat_names)
