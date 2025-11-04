@@ -123,7 +123,7 @@ def engineer_row_level(df: pd.DataFrame) -> pd.DataFrame:
     # dates
     val = _ensure_dt(out[DATE_COL_VALUE])
     pst = _ensure_dt(out[DATE_COL_POST])
-    out["posting_lag_days"] = (pst - val).dt.days.fillna(0).astype("int16")
+    out["posting_lag_days"] = (pst - val).dt.days.abs().fillna(0).astype("int16")
 
     # calendar (trimmed)
     posting = pst.fillna(val)
@@ -242,20 +242,25 @@ NUMERIC_FEATURES = [
     "mean_amount_30d",
     "std_amount_30d",
     "avg_posting_lag_30d",
-    "zscore_amount_30d",
+    "zscore_amount_30d","month",
+                    "quarter",
+                    "is_matched_src", 
+                    "cashbook_flag_derived"
 ]
 
 # ONLY these will be scaled
-SCALE_NUM_COLS = ["amount","mean_amount_30d","std_amount_30d"]
+SCALE_NUM_COLS = NUMERIC_FEATURES
+
+# ["amount","mean_amount_30d","std_amount_30d",
+#                   "month",
+#                     "quarter",
+#                     "is_matched_src", 
+#                     "cashbook_flag_derived"]
 
 
 # categorical (raw + discrete engineered)
 EXTRA_CATEGORICAL_FEATURES = [
-    "is_weekend",
-    "month",
-    "quarter",
-    "is_matched_src",       # ← from source
-    "cashbook_flag_derived",
+    "is_weekend"
 ]
 
 
