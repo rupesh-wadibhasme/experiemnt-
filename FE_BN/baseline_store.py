@@ -7,69 +7,96 @@ from datetime import date, timedelta
 
 class DailyCountStore:
     """
-    Rolling per-day txn counts by group.
-    Stores month-partitioned parquet files: artifacts_features/baselines/daily_counts/YYYY-MM.parquet
-    Columns: [BankAccountCode, BusinessUnitCode, BankTransactionCode, _day (date), count (int)]
+    Lightweight in-memory/CSV store of daily counts per (acct, bu, code).
+    Designed to work on the ENGINEERED DF (feats_*) that still has RAW columns,
+    NOT on the encoded X matrix.
     """
-    def __init__(self, root="artifacts_features/baselines/daily_counts"):
-        self.root = Path(root)
-        self.root.mkdir(parents=True, exist_ok=True)
+    def __init__(self, path_csv: str = "artifacts_features/daily_counts_store.csv"):
+        self.path_csv = path_csv
+        self._df = None
+        if os.path.exists(self.path_csv):
+            self._df = pd.read_csv(self.path_csv, parse_dates=["_day"])
+        else:
+            self._df = pd.DataFrame(columns=[
+                "BankAccountCode","BusinessUnitCode","BankTransactionCode","_day","count"
+            ])
+            self._df["_day"] = pd.to_datetime(self._df["_day"])
 
-    def _path_for_month(self, d: date) -> Path:
-        return self.root / f"{d.strftime('%Y-%m')}.parquet"
+    @staticmethod
+    def _ensure_raw_keys(df: pd.DataFrame, keys):
+        missing = [k for k in keys if k not in df.columns]
+        if missing:
+            raise KeyError(
+                f"DailyCountStore expected raw keys {keys} in the provided dataframe, "
+                f"but missing {missing}. Make sure you pass the ENGINEERED DF (feats_*), "
+                f"not the encoded matrix. Available columns: {list(df.columns)[:40]}..."
+            )
 
-    def _ensure_parquet_supported(self):
-        try:
-            pd.DataFrame({"x":[1]}).to_parquet(self.root / "_probe.parquet", index=False)
-            (self.root / "_probe.parquet").unlink(missing_ok=True)
-        except Exception as e:
-            raise RuntimeError("Parquet support required (install pyarrow or fastparquet).") from e
+    @staticmethod
+    def _to_date(series_yyyymmdd: pd.Series) -> pd.Series:
+        return pd.to_datetime(series_yyyymmdd.astype(str), format="%Y%m%d", errors="coerce").dt.date
 
-    def upsert_counts(self, df_today: pd.DataFrame,
+    def upsert_counts(self,
+                      df_today: pd.DataFrame,
                       keys=("BankAccountCode","BusinessUnitCode","BankTransactionCode"),
                       posting_col="PostingDateKey") -> None:
-        """Append/replace today’s counts for each group. Call AFTER spike check to avoid leakage."""
-        self._ensure_parquet_supported()
-        day = pd.to_datetime(df_today[posting_col].astype(str), format="%Y%m%d", errors="coerce").dt.date
-        tmp = df_today.assign(_day=day)
-        counts = (tmp.groupby([*keys, "_day"], dropna=False)
-                    .size().reset_index(name="count"))
-        if counts.empty:
-            return
-        path = self._path_for_month(counts["_day"].iloc[0])
-        if path.exists():
-            old = pd.read_parquet(path)
-            merged = (pd.concat([old, counts], ignore_index=True)
-                        .drop_duplicates(subset=[*keys, "_day"], keep="last"))
-        else:
-            merged = counts
-        merged.to_parquet(path, index=False)
+        """
+        Add/replace counts for the (keys, posting_date) combinations present in df_today.
+        df_today MUST have the raw key columns (not hashed/one-hot) and raw posting_col.
+        """
+        self._ensure_raw_keys(df_today, keys)
+        if posting_col not in df_today.columns:
+            raise KeyError(f"'{posting_col}' not found in dataframe.")
 
-    def load_history(self, groups_df: pd.DataFrame, days_back=30,
+        grp = (df_today.assign(_day=self._to_date(df_today[posting_col]))
+                        .groupby([*keys, "_day"], dropna=False)
+                        .size()
+                        .reset_index(name="count"))
+
+        if grp.empty:
+            return
+
+        # Remove any existing rows for these (keys,_day) then append new
+        m = ["BankAccountCode","BusinessUnitCode","BankTransactionCode","_day"]
+        cur = self._df
+        left = cur.merge(grp[m], on=m, how="left", indicator=True)
+        cur_pruned = left[left["_merge"] == "left_only"].drop(columns=["_merge"])
+        cur_pruned = cur_pruned[cur_pruned.columns]  # keep same column order
+
+        self._df = pd.concat([cur_pruned, grp], ignore_index=True)
+        # Persist
+        os.makedirs(os.path.dirname(self.path_csv), exist_ok=True)
+        self._df.to_csv(self.path_csv, index=False)
+
+    def load_history(self,
+                     df_today: pd.DataFrame,
+                     days_back: int = 30,
                      keys=("BankAccountCode","BusinessUnitCode","BankTransactionCode"),
                      posting_col="PostingDateKey") -> pd.DataFrame:
-        """Load [today - days_back, yesterday] per-day counts for groups present in groups_df."""
-        self._ensure_parquet_supported()
-        today_vals = pd.to_datetime(groups_df[posting_col].astype(str), format="%Y%m%d", errors="coerce").dt.date
-        end = max([d for d in today_vals if pd.notna(pd.Timestamp(d))], default=None)
-        if end is None:
+        """
+        Return historical rows for the (keys) appearing in df_today within the trailing window.
+        """
+        self._ensure_raw_keys(df_today, keys)
+        tdates = self._to_date(df_today[posting_col])
+        if len(tdates) == 0 or tdates.isna().all():
             return pd.DataFrame(columns=[*keys, "_day", "count"])
-        start = end - timedelta(days=days_back)
-        # Which months to pull
-        months = pd.period_range(start=start, end=end, freq="M").strftime("%Y-%m").tolist()
-        months = sorted(set(months + [start.strftime("%Y-%m"), end.strftime("%Y-%m")]))
-        parts = []
-        for m in months:
-            p = self.root / f"{m}.parquet"
-            if p.exists():
-                parts.append(pd.read_parquet(p))
-        if not parts:
+
+        day_max = pd.Timestamp(tdates.max())
+        start = (day_max - pd.Timedelta(days=days_back)).normalize()
+        end   = (day_max - pd.Timedelta(days=1)).normalize()
+
+        if self._df is None or self._df.empty:
             return pd.DataFrame(columns=[*keys, "_day", "count"])
-        hist = pd.concat(parts, ignore_index=True)
-        hist = hist[(hist["_day"] >= start) & (hist["_day"] <= end)]
-        # keep only groups we care about today
-        grp_today = groups_df[[*keys]].drop_duplicates()
-        hist = hist.merge(grp_today, on=list(keys), how="inner")
+
+        key_df = df_today[[*keys]].drop_duplicates()
+        hist = self._df.copy()
+        hist["_day"] = pd.to_datetime(hist["_day"]).dt.normalize()
+
+        # Inner join on keys to keep only groups that appear today
+        hist = key_df.merge(hist, on=list(keys), how="inner")
+
+        mask = (hist["_day"] >= start) & (hist["_day"] <= end)
+        hist = hist.loc[mask, [*keys, "_day", "count"]]
         return hist
 
 # ==== SPIKE RULE (z-score or percentile; leakage-free via trailing shift) ===
