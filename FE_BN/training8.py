@@ -826,6 +826,61 @@ def run_pipeline(X_all, feats_all, feat_names ):
     os.makedirs(OUT_DIR, exist_ok=True)
     anomalies_only.to_csv(os.path.join(OUT_DIR, OUTPUT_CSV), index=False)
 
+    # === RULE ANOMALIES (weekend/holiday + volume spike) =======================
+    OUT_RULES_DIR = "rule_outputs"
+    os.makedirs(OUT_RULES_DIR, exist_ok=True)
+    
+    # (1) Non-business days
+    HOLIDAYS = {
+        # dt.date(2025, 1, 26), dt.date(2025, 8, 15), ...
+    }
+    fe_nbz = flag_non_business_day_rules(
+        feats_all,                   # engineered df with ValueDateKey/PostingDateKey
+        value_col="ValueDateKey",
+        posting_col="PostingDateKey",
+        holidays=HOLIDAYS,
+    )
+    nbz_mask = (fe_nbz["is_nonbiz_value"] == 1) | (fe_nbz["is_nonbiz_post"] == 1)
+    nbz_cols = [
+        "ts", "ValueDateKey", "PostingDateKey",
+        "BankAccountCode", "BusinessUnitCode", "BankTransactionCode",
+        "AmountInBankAccountCurrency",
+        "is_nonbiz_value", "is_nonbiz_post", "nonbiz_reason",
+    ]
+    nbz_df = fe_nbz.loc[nbz_mask, [c for c in nbz_cols if c in fe_nbz.columns]].copy()
+    nbz_df.to_csv(os.path.join(OUT_RULES_DIR, "nonbiz_anomalies.csv"), index=False)
+    
+    # (2) Volume spikes via daily-count store (leakage-free)
+    store = DailyCountStore(root="artifacts_features/baselines/daily_counts")
+    fe_spk = flag_spikes_from_store(
+        feats_all,                  # uses PostingDateKey inside
+        store=store,
+        keys=("BankAccountCode","BusinessUnitCode","BankTransactionCode"),
+        posting_col="PostingDateKey",
+        method="zscore",            # or "percentile"
+        horizon_days=30,
+        z_k=3.0,
+        pct=0.99,
+        min_active_days=7,
+    )
+    vol_mask = fe_spk["vol_spike_flag"] == 1
+    vol_cols = [
+        "ts", "BankAccountCode", "BusinessUnitCode", "BankTransactionCode",
+        "group_count_today", "hist_mean_30d", "hist_std_30d",
+        "hist_pctl_30d", "hist_active_days", "vol_spike_flag", "vol_spike_reason",
+    ]
+    vol_df = fe_spk.loc[vol_mask, [c for c in vol_cols if c in fe_spk.columns]].copy()
+    vol_df.to_csv(os.path.join(OUT_RULES_DIR, "volume_spike_anomalies.csv"), index=False)
+    
+    # IMPORTANT: append today's counts AFTER flagging to avoid leakage
+    store.upsert_counts(feats_all,
+                        keys=("BankAccountCode","BusinessUnitCode","BankTransactionCode"),
+                        posting_col="PostingDateKey")
+    
+    print(f"[rules] nonbiz={len(nbz_df)}  vol_spike={len(vol_df)}  -> {OUT_RULES_DIR}")
+    # === END RULE ANOMALIES =====================================================
+
+    
     # 10) save meta
     meta = dict(
         threshold=float(thr),
@@ -845,53 +900,6 @@ def run_pipeline(X_all, feats_all, feat_names ):
     print(f"saved anomalies: {os.path.join(OUT_DIR, OUTPUT_CSV)}")
     print(f"learning curve: {os.path.join(OUT_DIR, LEARNING_CURVE_PNG)}")
 
-
-    # === RULE ANOMALIES (weekend/holiday + volume spike) =======================
-    OUT_RULES_DIR = "rule_outputs"
-    os.makedirs(OUT_RULES_DIR, exist_ok=True)
-
-    # (a) Weekend / Holiday anomalies on ValueDateKey or PostingDateKey
-    HOLIDAYS = {
-        # dt.date(2025, 1, 26),   # add your org’s holidays if needed
-    }
-    fe_nbz = flag_non_business_day_rules(
-        feats_all,                   # <- your engineered dataframe
-        value_col="ValueDateKey",
-        posting_col="PostingDateKey",
-        holidays=HOLIDAYS,
-    )
-    nbz_mask = (fe_nbz["is_nonbiz_value"] == 1) | (fe_nbz["is_nonbiz_post"] == 1)
-    nbz_cols = [
-        "ts", "ValueDateKey", "PostingDateKey",
-        "BankAccountCode", "BusinessUnitCode", "BankTransactionCode",
-        "AmountInBankAccountCurrency",
-        "is_nonbiz_value", "is_nonbiz_post", "nonbiz_reason"
-    ]
-    nbz_df = fe_nbz.loc[nbz_mask, [c for c in nbz_cols if c in fe_nbz.columns]].copy()
-    nbz_df.to_csv(os.path.join(OUT_RULES_DIR, "nonbiz_anomalies.csv"), index=False)
-
-    # (b) Daily volume spike for (Account, BU, Code) vs trailing 30d (excl. today)
-    fe_vol = flag_daily_volume_spike_rules(
-        feats_all,
-        keys=("BankAccountCode","BusinessUnitCode","BankTransactionCode"),
-        posting_col="PostingDateKey",
-        method="zscore",          # or "percentile"
-        horizon_days=30,
-        z_k=3.0,
-        pct=0.99,
-        min_history_days=7,
-    )
-    vol_mask = fe_vol["vol_spike_flag"] == 1
-    vol_cols = [
-        "ts", "BankAccountCode", "BusinessUnitCode", "BankTransactionCode",
-        "group_count_today", "hist_mean_30d", "hist_std_30d",
-        "hist_pctl_30d", "hist_active_days", "vol_spike_reason"
-    ]
-    vol_df = fe_vol.loc[vol_mask, [c for c in vol_cols if c in fe_vol.columns]].copy()
-    vol_df.to_csv(os.path.join(OUT_RULES_DIR, "volume_spike_anomalies.csv"), index=False)
-
-    print(f"[rules] nonbiz={len(nbz_df)}  vol_spike={len(vol_df)}  -> {OUT_RULES_DIR}")
-    # === END RULE ANOMALIES =====================================================
 
 
 
