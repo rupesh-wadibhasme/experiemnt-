@@ -74,7 +74,7 @@ class DailyCountStore:
 
 # ==== SPIKE RULE (z-score or percentile; leakage-free via trailing shift) ===
 def flag_spikes_from_store(df_today: pd.DataFrame,
-                           store: DailyCountStore,
+                           store: "DailyCountStore",
                            keys=("BankAccountCode","BusinessUnitCode","BankTransactionCode"),
                            posting_col="PostingDateKey",
                            method="zscore",
@@ -83,17 +83,22 @@ def flag_spikes_from_store(df_today: pd.DataFrame,
                            pct=0.99,
                            min_active_days=7) -> pd.DataFrame:
     """
-    Returns df_today with added columns:
+    Non-recursive implementation.
+    Adds to df_today:
       - group_count_today, hist_mean_30d, hist_std_30d, hist_pctl_30d, hist_active_days
       - vol_spike_flag (0/1), vol_spike_reason (str)
     """
-    # Today’s per-group count
+    # --- today’s per-group count ---
     pdt = pd.to_datetime(df_today[posting_col].astype(str), format="%Y%m%d", errors="coerce").dt.date
     today_counts = (df_today.assign(_day=pdt)
                             .groupby([*keys, "_day"], dropna=False)
                             .size().reset_index(name="group_count_today"))
+
+    # prepare output skeleton joined on group + day
+    out = df_today.copy()
+    out["_day"] = pdt
+
     if today_counts.empty:
-        out = df_today.copy()
         out["group_count_today"] = 0
         out["hist_mean_30d"] = 0.0
         out["hist_std_30d"] = 0.0
@@ -101,85 +106,108 @@ def flag_spikes_from_store(df_today: pd.DataFrame,
         out["hist_active_days"] = 0
         out["vol_spike_flag"] = 0
         out["vol_spike_reason"] = ""
-        return out
+        return out.drop(columns=["_day"])
 
-    # Load history (<= yesterday)
+    # --- load trailing history (<= yesterday) for just today’s groups ---
     hist = store.load_history(df_today, days_back=horizon_days, keys=keys, posting_col=posting_col)
+    # ensure correct dtypes
+    if not hist.empty:
+        hist = hist.copy()
+        # keep only required cols
+        keep = [*keys, "_day", "count"]
+        hist = hist[keep]
 
-    if hist.empty:
-        joined = today_counts.assign(hist_mean_30d=0.0, hist_std_30d=0.0,
-                                     hist_pctl_30d=0.0, hist_active_days=0)
-    else:
-        # Build continuous timeline per group, then rolling stats shifted(1)
-        def _roll(g):
-            idx = pd.date_range(g["_day"].min(), g["_day"].max(), freq="D").date
-            tmp = pd.DataFrame({"_day": idx}).merge(g[["_day","count"]], on="_day", how="left")
-            tmp["count"] = tmp["count"].fillna(0)
-            roll = tmp["count"].rolling(window=horizon_days, min_periods=1)
-            mean_ = roll.mean().shift(1)
-            std_  = roll.std(ddof=1).shift(1)
-            pctl  = roll.apply(lambda x: np.quantile(x, pct), raw=False).shift(1)
-            active = roll.apply(lambda x: int(np.sum(np.array(x) > 0)), raw=False).shift(1)
-            out = tmp.copy()
-            out["hist_mean_30d"] = mean_.values
-            out["hist_std_30d"]  = std_.values
-            out["hist_pctl_30d"] = pctl.values
-            out["hist_active_days"] = active.values
-            # keep only original days (when group had activity historically)
-            return out[out["_day"].isin(g["_day"])]
+    # container for per-group baselines for today
+    base_rows = []
 
-        rolled = (hist.groupby(list(keys), group_keys=False)
-                       .apply(_roll)
-                       .reset_index())
+    # iterate over today's unique groups only (usually small)
+    for (a, b, c), g_today in today_counts.groupby(keys):
+        day_today = g_today["_day"].iloc[0]
+        cnt_today = int(g_today["group_count_today"].iloc[0])
 
-        joined = today_counts.merge(
-            rolled.rename(columns={"count":"count_hist"}),
-            on=[*keys, "_day"], how="left"
-        )
-        for c in ["hist_mean_30d","hist_std_30d","hist_pctl_30d","hist_active_days"]:
-            joined[c] = joined[c].fillna(0)
+        # slice history for this group
+        if hist.empty:
+            g_hist = pd.DataFrame(columns=["_day","count"])
+        else:
+            mask = (hist[keys[0]] == a) & (hist[keys[1]] == b) & (hist[keys[2]] == c)
+            g_hist = hist.loc[mask, ["_day","count"]].copy()
 
-    # Decision
-    has_hist = joined["hist_active_days"] >= min_active_days
+        # build continuous calendar window [day_today - horizon_days, day_today - 1]
+        start = pd.Timestamp(day_today) - pd.Timedelta(days=horizon_days)
+        end   = pd.Timestamp(day_today) - pd.Timedelta(days=1)
+        if end < start:
+            # no prior day (edge case)
+            base_rows.append({
+                keys[0]: a, keys[1]: b, keys[2]: c, "_day": day_today,
+                "group_count_today": cnt_today,
+                "hist_mean_30d": 0.0, "hist_std_30d": 0.0, "hist_pctl_30d": 0.0, "hist_active_days": 0
+            })
+            continue
+
+        idx = pd.date_range(start, end, freq="D").date
+        cal = pd.DataFrame({"_day": idx})
+        if not g_hist.empty:
+            cal = cal.merge(g_hist, on="_day", how="left")
+        cal["count"] = cal["count"].fillna(0).astype(int)
+
+        # stats over the trailing window (already excludes today)
+        counts = cal["count"].to_numpy()
+        hist_mean = float(np.mean(counts)) if len(counts) else 0.0
+        hist_std  = float(np.std(counts, ddof=1)) if len(counts) > 1 else 0.0
+        hist_pctl = float(np.quantile(counts, pct)) if len(counts) else 0.0
+        hist_active = int((counts > 0).sum())
+
+        base_rows.append({
+            keys[0]: a, keys[1]: b, keys[2]: c, "_day": day_today,
+            "group_count_today": cnt_today,
+            "hist_mean_30d": hist_mean,
+            "hist_std_30d": hist_std,
+            "hist_pctl_30d": hist_pctl,
+            "hist_active_days": hist_active
+        })
+
+    base_df = pd.DataFrame(base_rows)
+
+    # --- decide flags ---
     if method == "zscore":
-        std0 = (joined["hist_std_30d"] == 0) & (joined["group_count_today"] > joined["hist_mean_30d"])
-        stdk = (joined["hist_std_30d"] > 0) & (
-            joined["group_count_today"] > joined["hist_mean_30d"] + z_k * joined["hist_std_30d"]
+        std0 = (base_df["hist_std_30d"] == 0) & (base_df["group_count_today"] > base_df["hist_mean_30d"])
+        stdk = (base_df["hist_std_30d"] > 0) & (
+            base_df["group_count_today"] > base_df["hist_mean_30d"] + z_k * base_df["hist_std_30d"]
         )
-        flag = has_hist & (std0 | stdk)
-        thresh = np.where(
+        flag = (base_df["hist_active_days"] >= min_active_days) & (std0 | stdk)
+        thresh_txt = np.where(
             std0,
-            (joined["hist_mean_30d"]).round(2).astype(str) + " (std≈0)",
-            (joined["hist_mean_30d"] + z_k * joined["hist_std_30d"]).round(2).astype(str)
+            (base_df["hist_mean_30d"].round(2)).astype(str) + " (std≈0)",
+            (base_df["hist_mean_30d"] + z_k * base_df["hist_std_30d"]).round(2).astype(str)
         )
     else:
-        pthr = joined["hist_pctl_30d"]
-        flag = has_hist & (joined["group_count_today"] > pthr)
-        thresh = pthr.round(2).astype(str)
+        flag = (base_df["hist_active_days"] >= min_active_days) & (base_df["group_count_today"] > base_df["hist_pctl_30d"])
+        thresh_txt = base_df["hist_pctl_30d"].round(2).astype(str)
 
-    joined["vol_spike_flag"] = flag.astype(int)
-    joined["vol_spike_reason"] = [
-        f"Txn volume spike: {int(c)} today vs typical {t} "
-        f"for Account='{a}', BU='{b}', Code='{cd}' (last {horizon_days}d)."
+    base_df["vol_spike_flag"] = flag.astype(int)
+    base_df["vol_spike_reason"] = [
+        f"Txn volume spike: {int(c)} today vs typical {t} for Account='{a}', BU='{b}', Code='{cd}' (last {horizon_days}d)."
         for c, t, a, b, cd in zip(
-            joined["group_count_today"], thresh,
-            joined[keys[0]], joined[keys[1]], joined[keys[2]]
+            base_df["group_count_today"], thresh_txt, base_df[keys[0]], base_df[keys[1]], base_df[keys[2]]
         )
     ]
 
-    # Attach back to each row
-    out = df_today.copy()
-    out["_day"] = pdt
+    # --- attach back to row-level ---
     out = out.merge(
-        joined[[*keys, "_day", "group_count_today", "hist_mean_30d","hist_std_30d",
-                "hist_pctl_30d","hist_active_days","vol_spike_flag","vol_spike_reason"]],
+        base_df[[*keys, "_day", "group_count_today", "hist_mean_30d", "hist_std_30d",
+                 "hist_pctl_30d", "hist_active_days", "vol_spike_flag", "vol_spike_reason"]],
         on=[*keys, "_day"], how="left"
     ).drop(columns=["_day"])
-    # defaults
+
+    # defaults for groups that somehow didn’t get stats
     for c in ["group_count_today","hist_mean_30d","hist_std_30d","hist_pctl_30d","hist_active_days","vol_spike_flag"]:
-        out[c] = out[c].fillna(0)
-    out["vol_spike_reason"] = out["vol_spike_reason"].fillna("")
+        if c in out.columns:
+            out[c] = out[c].fillna(0)
+    if "vol_spike_reason" in out.columns:
+        out["vol_spike_reason"] = out["vol_spike_reason"].fillna("")
+
     return out
+
 
 # ==== NON-BUSINESS DAY RULE (weekend/holiday) ===============================
 def flag_non_business_day_rules(df: pd.DataFrame,
