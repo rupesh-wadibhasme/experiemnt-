@@ -6,6 +6,10 @@ from rule_anomalies import (
     save_volume_baseline,
 )
 
+# =========================
+# 1) BUILD & SAVE BASELINE
+# =========================
+
 # ---- paths ----
 TRAIN_XLSX    = "DL_raw_files.xlsx"      # your training file
 BASELINE_PKL  = "volume_baseline.pkl"    # where we store baseline stats
@@ -28,8 +32,10 @@ save_volume_baseline(baseline_df, BASELINE_PKL)
 print(f"Baseline saved to {BASELINE_PKL} with {len(baseline_df)} groups.")
 
 
-# -----Inference -----------
 
+# =========================
+# 2) INFERENCE USING BASELINE
+# =========================
 
 import pandas as pd
 from datetime import date
@@ -38,6 +44,7 @@ from rule_anomalies import (
     load_volume_baseline,
     flag_non_business_days,
     flag_extra_volume_txns_with_baseline,
+    combine_reasons_columns,   # ← new helper to merge reasons
 )
 
 # ---- paths ----
@@ -73,17 +80,25 @@ df_vol = flag_extra_volume_txns_with_baseline(
     bu_col="BusinessUnitCode",
     code_col="BankTransactionCode",
     posting_date_col="PostingDateKey",
-    txn_id_col="BankTransactionId",   # must exist in your file
+    txn_id_col="BankTransactionId",   # must exist in your file; used for group_txn_ids
     min_history_days=5,               # need at least 5 days of history to trust baseline
     zscore_threshold=3.0,             # how aggressive the spike definition is
     sort_col="PostingDateKey",        # or a timestamp column if you have one
 )
 
-# ---- combine both rule types into a single anomaly view ----
+# ---- (3) Combine non-biz + volume reasons into ONE column ----
+df_vol = combine_reasons_columns(
+    df_vol,
+    nonbiz_col="nonbiz_reason",
+    vol_col="volume_spike_reason",
+    out_col="anomaly_reason",
+)
+
+# ---- (4) build anomaly view (any rule fired) ----
 anomalies = df_vol[
-    (df_vol["is_nonbiz_value"] == 1) |
-    (df_vol["is_nonbiz_post"] == 1)  |
-    (df_vol["is_volume_spike_txn"] == 1)
+    (df_vol.get("is_nonbiz_value", 0) == 1) |
+    (df_vol.get("is_nonbiz_post", 0) == 1)  |
+    (df_vol.get("is_volume_spike_txn", 0) == 1)
 ].copy()
 
 # OPTIONAL: keep only the most relevant columns
@@ -100,7 +115,6 @@ cols_to_keep = [
     # non-business-day signals
     "is_nonbiz_value",
     "is_nonbiz_post",
-    "nonbiz_reason",
 
     # volume spike signals
     "group_count_today",
@@ -108,8 +122,10 @@ cols_to_keep = [
     "std_daily_count",
     "active_days",
     "is_volume_spike_txn",
-    "volume_spike_reason",
-    "group_txn_ids",   # ← all txn IDs for that combo+day
+    "group_txn_ids",        # all txn IDs for that combo+day
+
+    # unified human explanation
+    "anomaly_reason",
 ]
 cols_to_keep = [c for c in cols_to_keep if c in anomalies.columns]
 anomalies = anomalies[cols_to_keep]
