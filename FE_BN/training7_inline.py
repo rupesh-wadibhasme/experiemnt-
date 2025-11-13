@@ -219,6 +219,46 @@ def topk_by_feature(X: np.ndarray,
                 top1_pred_orig[r]   = p_o
 
     return idx_topk, feat_names_top1, top1_actual_orig, top1_pred_orig
+                        
+# ---- Reasoning config (amount vs account+BU) ----
+ZSCORE_AMOUNT_THRESH = 2.5  # adjust: 2.0 more sensitive, 3.0 stricter
+
+def _fmt_inr(x) -> str:
+    try:
+        return f"₹{float(x):,.2f}"
+    except Exception:
+        return str(x)
+
+def _reason_amount_vs_combo(row) -> str:
+    """
+    English sentence focused on amount anomaly for (BankAccountCode, BusinessUnitCode).
+    Expects these columns on the row:
+      - 'AmountInBankAccountCurrency', 'BankAccountCode', 'BusinessUnitCode'
+      - 'mean_amount_30d', 'std_amount_30d', 'zscore_amount_30d'
+    """
+    acct = row.get("BankAccountCode", "-")
+    bu   = row.get("BusinessUnitCode", "-")
+    amt  = row.get("AmountInBankAccountCurrency", row.get("amount", None))
+    mu   = row.get("mean_amount_30d", None)
+    sd   = row.get("std_amount_30d", None)
+    z    = row.get("zscore_amount_30d", None)
+
+    # defensive fallbacks
+    amt_txt = _fmt_inr(amt)
+    mu_txt  = _fmt_inr(mu) if pd.notna(mu) else "their usual level"
+    sd_txt  = _fmt_inr(sd) if (pd.notna(sd) and float(sd) != 0.0) else "—"
+
+    z_txt = ""
+    try:
+        if pd.notna(z):
+            z_txt = f" (~{float(z):.2f}σ)"
+    except Exception:
+        pass
+
+    return (
+        f"Amount {amt_txt} looks atypical for Account '{acct}' and BU '{bu}': "
+        f"recent 30-day typical ≈ {mu_txt}, std ≈ {sd_txt}{z_txt}."
+    )
 
 # =========================
 # main pipeline
@@ -286,7 +326,7 @@ def run_pipeline(X_all: np.ndarray, feats_all: pd.DataFrame, feat_names: List[st
         topk_names_str = []
         for row in idx_topk:
             topk_names_str.append(", ".join([feat_names[j] for j in row]))
-
+    
         out = feats_test.iloc[idx_anom].copy()
         out["recon_error"] = test_err[idx_anom]
         out["is_anomaly"]  = 1
@@ -294,11 +334,28 @@ def run_pipeline(X_all: np.ndarray, feats_all: pd.DataFrame, feat_names: List[st
         out["top1_feature"]  = top1_names
         out["top1_actual_orig"] = top1_act
         out["top1_pred_orig"]   = top1_pred
+    
+        # === Keep ONLY amount-vs-(Account,BU) anomalies ===
+        # Require engineered 30d z-score to be sufficiently large
+        if "zscore_amount_30d" in out.columns:
+            mask_amt = out["zscore_amount_30d"].abs() >= ZSCORE_AMOUNT_THRESH
+        else:
+            # if for some reason missing, keep all (but this should exist from FE)
+            mask_amt = np.ones(len(out), dtype=bool)
+    
+        out = out.loc[mask_amt].copy()
+    
+        # Attach single-scenario English reasoning
+        # (amount atypical for this Account + BU)
+        if not out.empty:
+            out["reason"] = out.apply(_reason_amount_vs_combo, axis=1)
+    
         anomalies_only = out.sort_values("recon_error", ascending=False).reset_index(drop=True)
 
-    # Save CSV (empty file if no anomalies)
+    # Save CSV (empty file if no anomalies survived the amount filter)
     os.makedirs(OUT_DIR, exist_ok=True)
     anomalies_only.to_csv(os.path.join(OUT_DIR, OUTPUT_CSV), index=False)
+
 
     meta = dict(
         threshold=float(thr),
