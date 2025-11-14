@@ -35,6 +35,8 @@ OPTIONAL_COLS = ["BankTransactionId"]
 # Base categoricals (raw)
 BASE_CATEGORICAL_COLS = [ACCOUNT_COL, CODE_COL, BUSUNIT_COL, FLAG_CASHBOOK]
 
+GROUP_KEYS = [ACCOUNT_COL, BUSUNIT_COL, CODE_COL]
+
 # ========= Artifacts =========
 ART_DIR       = "artifacts_features"
 ENCODER_PATH  = os.path.join(ART_DIR, "encoder.pkl")           # BinaryEncoder
@@ -109,6 +111,12 @@ def _read_excel_selected(path: str, sheet_name=0, drop_dupes: bool = True) -> pd
         if col in df.columns:
             df[col] = _clean_categorical(df[col])
     return df
+    
+def _assert_has_columns(df: pd.DataFrame, cols: list, where: str = ""):
+    missing = [c for c in cols if c not in df.columns]
+    if missing:
+        raise KeyError(f"Missing columns {missing} in {where or 'DataFrame'}. "
+                       f"Available: {list(df.columns)}")
 
 # ========= Row features =========
 def engineer_row_level(df: pd.DataFrame) -> pd.DataFrame:
@@ -137,23 +145,28 @@ def engineer_row_level(df: pd.DataFrame) -> pd.DataFrame:
     out["ts"] = posting
     return out
 
-# If you also need per TxnCode, use this instead:
-GROUP_KEYS = ["BankAccountCode", "BusinessUnitCode", "BankTransactionCode"]
-# ========= Baselines =========
+# ========= Baselines (per Account, BU, Code) =========
 def compute_account_baselines(history_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Compute leakage-free 7D/30D rolling stats PER COMBINATION defined in GROUP_KEYS.
-    shift(1) avoids using the current row/day in its own baseline.
+    Compute leakage-free rolling 7D/30D stats PER (Account, BU, Code).
+    Uses shift(1) so the current row/day is not included in its own baseline.
     """
-    df = engineer_row_level(history_df).sort_values(GROUP_KEYS + ["ts"])
+    df = engineer_row_level(history_df).copy()
+    _assert_has_columns(df, GROUP_KEYS + ["ts", "amount", "posting_lag_days"], "compute_account_baselines.input")
+
+    # sort by all keys + time
+    df = df.sort_values(GROUP_KEYS + ["ts"]).reset_index(drop=True)
 
     def _roll(g: pd.DataFrame) -> pd.DataFrame:
-        g = g.set_index("ts")
-        txn_count_7d  = g["amount"].rolling("7D").count().shift(1)
-        txn_count_30d = g["amount"].rolling("30D").count().shift(1)
-        mean_30d      = g["amount"].rolling("30D").mean().shift(1)
-        std_30d       = g["amount"].rolling("30D").std(ddof=1).shift(1)
-        avg_lag_30d   = g["posting_lag_days"].rolling("30D").mean().shift(1)
+        # capture key values BEFORE reindex to avoid surprises
+        key_vals = {k: g.iloc[0][k] for k in GROUP_KEYS}
+        g2 = g.set_index("ts")
+
+        txn_count_7d  = g2["amount"].rolling("7D").count().shift(1)
+        txn_count_30d = g2["amount"].rolling("30D").count().shift(1)
+        mean_30d      = g2["amount"].rolling("30D").mean().shift(1)
+        std_30d       = g2["amount"].rolling("30D").std(ddof=1).shift(1)
+        avg_lag_30d   = g2["posting_lag_days"].rolling("30D").mean().shift(1)
 
         out = (pd.DataFrame({
             "txn_count_7d": txn_count_7d,
@@ -161,44 +174,44 @@ def compute_account_baselines(history_df: pd.DataFrame) -> pd.DataFrame:
             "mean_amount_30d": mean_30d,
             "std_amount_30d": std_30d,
             "avg_posting_lag_30d": avg_lag_30d,
-        }).reset_index())
+        }).reset_index())  # brings 'ts' back
 
-        # reattach group keys (constant within this group)
-        for k in GROUP_KEYS:
-            out[k] = g[k].iloc[0]
-        return out.reset_index(drop=True)
+        for k, v in key_vals.items():
+            out[k] = v
+        return out
 
-    base = (df.groupby(GROUP_KEYS, group_keys=False)
+    base = (df.groupby(GROUP_KEYS, dropna=False, sort=False)
               .apply(_roll)
               .reset_index(drop=True))
 
-    # nice ordering
+    _assert_has_columns(base, GROUP_KEYS + ["ts"], "compute_account_baselines.output")
     base = base.sort_values(GROUP_KEYS + ["ts"]).reset_index(drop=True)
     return base
 
 
 def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFrame:
     """
-    As-of merge leakage-free rolling stats PER GROUP_KEYS.
-    For each (Account, BU[, Code]) slice, we asof-join to the most recent baseline <= row.ts.
+    As-of merge leakage-free rolling stats PER (Account, BU, Code).
+    For each exact combo in GROUP_KEYS, asof-join to the most recent baseline <= row.ts.
     """
-    df = engineer_row_level(df).copy()
-    df["ts"] = pd.to_datetime(df["ts"])
-    baselines = baselines.copy()
-    baselines["ts"] = pd.to_datetime(baselines["ts"])
+    feat = engineer_row_level(df).copy()
+    _assert_has_columns(feat, GROUP_KEYS + ["ts", "amount"], "merge_with_baselines.input.feat")
+
+    feat["ts"] = pd.to_datetime(feat["ts"])
+    base = baselines.copy()
+    _assert_has_columns(base, GROUP_KEYS + ["ts"], "merge_with_baselines.input.base")
+    base["ts"] = pd.to_datetime(base["ts"])
 
     parts = []
-    # group the incoming rows by the same GROUP_KEYS and merge with matching baseline subset
-    for keys_vals, g in df.groupby(GROUP_KEYS, dropna=False):
+    for keys_vals, g in feat.groupby(GROUP_KEYS, dropna=False, sort=False):
         left = g.sort_values("ts")
-        # build boolean mask for the exact combo
-        mask = pd.Series(True, index=baselines.index)
         if not isinstance(keys_vals, tuple):
             keys_vals = (keys_vals,)
+        # exact-match slice of baseline
+        mask = pd.Series(True, index=base.index)
         for k, v in zip(GROUP_KEYS, keys_vals):
-            mask &= (baselines[k] == v)
-
-        right = baselines.loc[mask].sort_values("ts")
+            mask &= (base[k] == v)
+        right = base.loc[mask].sort_values("ts")
 
         if right.empty:
             merged = left.copy()
@@ -208,17 +221,12 @@ def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFr
             merged["std_amount_30d"] = 0.0
             merged["avg_posting_lag_30d"] = 0.0
         else:
-            merged = pd.merge_asof(
-                left.sort_values("ts"),
-                right.sort_values("ts"),
-                on="ts",
-                direction="backward"
-            )
+            merged = pd.merge_asof(left, right, on="ts", direction="backward")
         parts.append(merged)
 
     feats = pd.concat(parts, ignore_index=True)
 
-    # compute z-score with the *combo* baseline
+    # z-score vs the combo baseline
     feats["zscore_amount_30d"] = (
         (feats["amount"] - feats["mean_amount_30d"]) /
         feats["std_amount_30d"].replace(0, np.nan)
@@ -229,6 +237,7 @@ def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFr
         feats[["mean_amount_30d","std_amount_30d","avg_posting_lag_30d"]].fillna(0.0)
     )
     return feats
+
 
 
 # ========= Numeric scaling helper =========
@@ -377,12 +386,19 @@ def transform_excel_batch(batch_xlsx_path: str, sheet_name=0) -> Tuple[np.ndarra
     return X_final, feats, feature_names
 
 def update_baselines_with_excel(batch_xlsx_path: str, sheet_name=0):
+    """
+    Recompute baselines on the incoming batch and merge with the existing baseline store,
+    keeping the latest record per (GROUP_KEYS, ts).
+    """
     base_old = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
+    _assert_has_columns(base_old, GROUP_KEYS + ["ts"], "update_baselines_with_excel.base_old")
+
     new_df = _read_excel_selected(batch_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
     base_new = compute_account_baselines(new_df)
+
     base_all = (pd.concat([base_old, base_new], ignore_index=True)
-                 .sort_values([ACCOUNT_COL, "ts"])
-                 .drop_duplicates([ACCOUNT_COL, "ts"], keep="last"))
+                  .sort_values(GROUP_KEYS + ["ts"])
+                  .drop_duplicates(GROUP_KEYS + ["ts"], keep="last"))
     base_all.to_csv(BASELINE_PATH, index=False)
 
 def build_training_matrix_from_excel(history_xlsx_path: str, sheet_name=0):
