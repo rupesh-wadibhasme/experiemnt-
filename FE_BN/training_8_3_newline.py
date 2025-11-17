@@ -49,6 +49,10 @@ USE_COL_WEIGHT          = True
 CAT_FEATURE_WEIGHT      = 0.25
 NUM_FEATURE_WEIGHT      = 1.00
 
+# NEW: emphasize amount (and a bit for zscore)
+AMOUNT_FEATURE_WEIGHT   = 8.0
+ZSCORE_FEATURE_WEIGHT   = 2.0
+
 # Amount gating (in ORIGINAL currency units)
 AMOUNT_DIFF_ABS         = 1.0        # ₹ absolute tolerance; set to 0 for any nonzero diff
 AMOUNT_DIFF_PCT         = 0.05       # 5% relative tolerance (on |actual|); set to 0 to disable
@@ -120,15 +124,32 @@ def load_scaler_schema() -> Tuple[Optional[Any], Dict]:
     return scaler, schema
 
 def build_column_weights(feat_names: List[str], schema: Dict,
-                         cat_weight=0.25, num_weight=1.0) -> np.ndarray:
+                         cat_weight=0.25, num_weight=1.0,
+                         amount_feature_weight=8.0,
+                         zscore_feature_weight=2.0) -> np.ndarray:
     scale_cols = schema.get("scale_numeric_cols", [])
     pass_cols  = schema.get("passthrough_numeric_cols", [])
     num_names  = [f"{c}_scaled" for c in scale_cols] + pass_cols
+
     w = np.full(len(feat_names), cat_weight, dtype=np.float32)
     for i, n in enumerate(feat_names):
         if n in num_names:
             w[i] = num_weight
+
+    if "amount" in scale_cols:
+        amt_name = "amount_scaled"
+        if amt_name in feat_names:
+            w[feat_names.index(amt_name)] = amount_feature_weight
+
+    if "zscore_amount_30d" in schema.get("numeric_cols", []):
+        try:
+            j = feat_names.index("zscore_amount_30d")
+            w[j] = max(w[j], zscore_feature_weight)
+        except ValueError:
+            pass
+
     return w
+
 
 def make_weighted_huber(col_weights: np.ndarray, delta: float = 1.0):
     w = tf.constant(col_weights.reshape(1, -1), dtype=tf.float32)
@@ -146,7 +167,7 @@ def make_autoencoder(input_dim: int,
                      l2=0.0,
                      dropout=0.0,
                      lr=1e-3,
-                     use_layernorm=True,
+                     use_layernorm=False,
                      loss_fn=None) -> Model:
     inp = layers.Input(shape=(input_dim,), name="in")
     x = inp
