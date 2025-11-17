@@ -178,6 +178,19 @@ def _map_cashbook(s: pd.Series) -> pd.Series:
     s = s.astype(str).str.strip().str.lower()
     return s.isin({"cashbook", "y", "yes", "1", "true"}).astype("int8")
 
+def _coalesce_combo_keys_inplace(feats: pd.DataFrame):
+    """Ensure canonical combo keys exist (remove any _x/_y leftovers)."""
+    for k in GROUP_KEYS:
+        kx, ky = f"{k}_x", f"{k}_y"
+        if k not in feats.columns:
+            if kx in feats.columns:
+                feats[k] = feats[kx]
+            elif ky in feats.columns:
+                feats[k] = feats[ky]
+    drop_cols = [c for k in GROUP_KEYS for c in (f"{k}_x", f"{k}_y") if c in feats.columns]
+    if drop_cols:
+        feats.drop(columns=drop_cols, inplace=True)
+
 # ========= Row features =========
 def engineer_row_level(df: pd.DataFrame) -> pd.DataFrame:
     """Create row-level numeric + calendar features used later in rolling baselines."""
@@ -273,6 +286,7 @@ def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFr
     """
     As-of merge leakage-free rolling stats PER (Account, BU, Code).
     For each exact combo in GROUP_KEYS, asof-join to the most recent baseline <= row.ts.
+    Avoid *_x/_y suffixing by dropping keys from right side before merge.
     """
     feat = engineer_row_level(df).copy()
     _assert_has_columns(feat, GROUP_KEYS + ["ts", "amount"], "merge_with_baselines.input.feat")
@@ -283,11 +297,14 @@ def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFr
     base["ts"] = pd.to_datetime(base["ts"])
 
     parts = []
+    base_cols_keep = ["ts","txn_count_7d","txn_count_30d",
+                      "mean_amount_30d","std_amount_30d","avg_posting_lag_30d"]
+
     for keys_vals, g in feat.groupby(GROUP_KEYS, dropna=False, sort=False):
         left = g.sort_values("ts")
         if not isinstance(keys_vals, tuple):
             keys_vals = (keys_vals,)
-        # exact-match slice of baseline
+        # exact-match slice of baseline for this combo
         mask = pd.Series(True, index=base.index)
         for k, v in zip(GROUP_KEYS, keys_vals):
             mask &= (base[k] == v)
@@ -301,6 +318,8 @@ def merge_with_baselines(df: pd.DataFrame, baselines: pd.DataFrame) -> pd.DataFr
             merged["std_amount_30d"] = 0.0
             merged["avg_posting_lag_30d"] = 0.0
         else:
+            # drop GROUP_KEYS from right to prevent suffixing
+            right = right[base_cols_keep]
             merged = pd.merge_asof(left, right, on="ts", direction="backward")
         parts.append(merged)
 
@@ -385,6 +404,9 @@ def fit_featureizer_from_excel(history_xlsx_path: str, sheet_name=0) -> FitArtif
 
     feats = merge_with_baselines(hist, base)
 
+    # DEFENSIVE: coalesce any _x/_y to canonical keys (shouldn't occur now, but safe)
+    _coalesce_combo_keys_inplace(feats)
+
     # ---- numeric (configurable scaling) ----
     df_num = feats[NUMERIC_FEATURES].astype("float32").copy()
     scaled_part, passthrough_cols, passthrough_part, scaler = _scale_numeric_block(df_num, SCALE_NUM_COLS)
@@ -441,6 +463,9 @@ def _transform_with_artifacts(feats: pd.DataFrame,
                               scaler: StandardScaler | None,
                               schema: Dict) -> Tuple[np.ndarray, List[str]]:
     """Apply saved scaler + BinaryEncoder to a new engineered frame and return (X, feature_names)."""
+    # DEFENSIVE: coalesce any _x/_y to canonical keys (shouldn't occur now, but safe)
+    _coalesce_combo_keys_inplace(feats)
+
     # numeric
     df_num = feats[schema["numeric_cols"]].astype("float32").copy()
     scale_cols = schema.get("scale_numeric_cols", [])
@@ -453,7 +478,6 @@ def _transform_with_artifacts(feats: pd.DataFrame,
     pass_part = df_num[pass_cols].values.astype("float32")
 
     # categoricals
-    # explicit pre-check for canonical base categoricals
     _missing = [c for c in BASE_CATEGORICAL_COLS if c not in feats.columns]
     if _missing:
         raise KeyError(
@@ -485,6 +509,9 @@ def transform_excel_batch(batch_xlsx_path: str, sheet_name=0) -> Tuple[np.ndarra
     base = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
     batch = _read_excel_selected(batch_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
     feats = merge_with_baselines(batch, base)
+
+    # DEFENSIVE: coalesce keys (if any prior artifacts produced suffixes)
+    _coalesce_combo_keys_inplace(feats)
 
     X_final, feature_names = _transform_with_artifacts(feats, enc, scaler, schema)
     return X_final, feats, feature_names
@@ -520,6 +547,9 @@ def build_training_matrix_from_excel(history_xlsx_path: str, sheet_name=0):
     hist = _read_excel_selected(history_xlsx_path, sheet_name=sheet_name, drop_dupes=True)
     base = pd.read_csv(BASELINE_PATH, parse_dates=["ts"])
     feats = merge_with_baselines(hist, base)
+
+    # DEFENSIVE: coalesce keys (if any prior artifacts produced suffixes)
+    _coalesce_combo_keys_inplace(feats)
 
     X_final, feature_names = _transform_with_artifacts(feats, enc, scaler, schema)
     return X_final, feats, feature_names
