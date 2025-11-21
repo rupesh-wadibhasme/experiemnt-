@@ -445,15 +445,15 @@ def plot_combo_drift_charts(
     all_paths: List[str] = []
     for row_idx, row in picked:
         try:
-            # Amount drift
-            p1 = plot_single_combo_drift(
-                train_df=train_df,
-                anomaly_row=row,
-                row_idx=row_idx,
-                out_dir=out_dir,
-                show_inline=show_inline,
-            )
-            all_paths.append(p1)
+            if show_amount_drift:
+                p1 = plot_single_combo_drift(
+                    train_df=train_df,
+                    anomaly_row=row,
+                    row_idx=row_idx,
+                    out_dir=out_dir,
+                    show_inline=show_inline,
+                )
+                all_paths.append(p1)
 
             # y_norm drift
             if show_y_norm:
