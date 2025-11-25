@@ -30,6 +30,24 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 import tensorflow as tf
 
+
+import os
+import json
+
+
+COMBO_MAP_NAME = "combo_map.json"
+
+def apply_combo_map_for_tsne(df: pd.DataFrame, combo_map: dict) -> pd.DataFrame:
+    """
+    Use the SAME combo_map that was used during training.
+    Unseen combos are mapped to the OOV id.
+    """
+    d = df.copy()
+    oov_id = combo_map[OOV_ID_NAME] if OOV_ID_NAME in combo_map else max(combo_map.values())
+    d["combo_id"] = d["combo_str"].map(combo_map).fillna(oov_id).astype("int32")
+    return d
+
+
 # import helpers from your AE training script
 from training_combo_autoencoder_df import (
     build_dataset_from_df,
@@ -264,145 +282,139 @@ def run_tsne_latent(
 # Main plotting function
 # -----------------------------
 def plot_latent_tsne(
-    df_train_all: pd.DataFrame,
-    df_test_all: pd.DataFrame,
+    df_train_raw: pd.DataFrame,
+    df_test_raw: pd.DataFrame,
     model_path: str,
     meta_path: str,
     anomalies_csv: str,
     out_png: str = "latent_tsne.png",
-    max_samples: int = 5000,
-    perplexity: int = 40,
-    random_seed: int = 42,
+    show: bool = False,
+    perplexity: float = 30.0,
+    random_state: int = 42,
 ):
     """
-    Build t-SNE on bottleneck vectors for Train + Test.
-    Highlights anomalies in red.
+    Build a t-SNE plot in bottleneck (latent) space:
+      - Blue: train points
+      - Grey: test normals
+      - Red: test anomalies
+
+    Uses the SAME combo_map as training (combo_map.json), so embedding indices stay valid.
     """
 
-    # ---- load meta: EXACT feature columns from training ----
+    # --- 1) Load meta & combo map (from training output dir) ---
+    model_dir = os.path.dirname(meta_path) if meta_path else os.path.dirname(model_path)
     with open(meta_path, "r") as f:
         meta = json.load(f)
-
     tab_cols = meta["tabular_feature_cols"]
 
-    print(f"[INFO] Loaded tabular cols from meta.json: {tab_cols}")
+    combo_map_path = os.path.join(model_dir, COMBO_MAP_NAME)
+    with open(combo_map_path, "r") as f:
+        combo_map = json.load(f)
 
-    # ---- STEP 1: Rebuild features but restrict to EXACT training cols ----
-    feats_train_all, _, _ = build_dataset_from_df(df_train_all)
-    feats_test_all,  _, _ = build_dataset_from_df(df_test_all)
+    # --- 2) Feature engineering on raw dataframes ---
+    feats_train_all, _, _ = build_dataset_from_df(df_train_raw)
+    feats_test_all,  _, _ = build_dataset_from_df(df_test_raw)
 
-    # Keep only required columns
-    keep_cols = tab_cols + ["combo_str", "ts", "amount"]
-    keep_cols = [c for c in keep_cols if c in feats_train_all.columns]
+    # Apply SAME combo map (with OOV for unseen)
+    feats_train = apply_combo_map_for_tsne(feats_train_all, combo_map)
+    feats_test  = apply_combo_map_for_tsne(feats_test_all,  combo_map)
 
-    df_train = feats_train_all[keep_cols].copy()
-    df_test  = feats_test_all[keep_cols].copy()
+    # Align tabular cols using training meta
+    tab_cols = [c for c in tab_cols if c in feats_train.columns and c in feats_test.columns]
 
-    # ---- STEP 2: Combo map (TRAIN ONLY) ----
-    combo_map = make_combo_map_from_train(df_train)
-    df_train = apply_combo_map(df_train, combo_map)
-    df_test  = apply_combo_map(df_test, combo_map)
+    # --- 3) Train-only stats for y_norm ---
+    stats_train = build_combo_stats_train(feats_train)
 
-    # ---- STEP 3: Build combo stats (TRAIN ONLY) ----
-    stats_train = build_combo_stats_train(df_train)
+    y_train = normalize_amount(feats_train, stats_train)
+    y_test  = normalize_amount(feats_test,  stats_train)
 
-    # ---- STEP 4: Compute y_norm ----
-    y_train = normalize_amount(df_train, stats_train)
-    y_test  = normalize_amount(df_test,  stats_train)
+    # AE inputs
+    Xtr, Ctr, col_names, j_y = build_inputs_with_ynorm(feats_train, tab_cols, y_train)
+    Xte, Cte, _,        _    = build_inputs_with_ynorm(feats_test,  tab_cols, y_test)
 
-    # ---- STEP 5: AE input matrices ----
-    X_train, C_train, col_names, j_y = build_inputs_with_ynorm(df_train, tab_cols, y_train)
-    X_test,  C_test,  _,       _     = build_inputs_with_ynorm(df_test,  tab_cols, y_test)
+    # --- 4) Load model & build encoder (bottleneck) ---
+    model = tf.keras.models.load_model(model_path, compile=False)
+    bottleneck_layer = model.get_layer("bottleneck")
+    encoder = tf.keras.Model(inputs=model.inputs, outputs=bottleneck_layer.output)
 
-    print(f"[INFO] X_train shape = {X_train.shape}")
-    print(f"[INFO] X_test shape  = {X_test.shape}")
+    # This is where your error happened earlier:
+    # now Ctr, Cte are guaranteed to be within [0, input_dim) of the embedding.
+    Z_train = encoder.predict([Xtr, Ctr], batch_size=2048, verbose=0)
+    Z_test  = encoder.predict([Xte, Cte], batch_size=2048, verbose=0)
 
-    # ---- STEP 6: Load trained AE model ----
-    model = load_model(model_path, compile=False)
-    encoder = tf.keras.Model(
-        inputs=model.inputs,
-        outputs=model.get_layer("bottleneck").output
+    # --- 5) Load anomalies (on test set) to mark them in latent space ---
+    anoms = pd.read_csv(anomalies_csv)
+    anoms_key = (
+        anoms["BankAccountCode"].astype(str) + "|" +
+        anoms["BusinessUnitCode"].astype(str) + "|" +
+        anoms["BankTransactionCode"].astype(str) + "|" +
+        pd.to_datetime(anoms["ts"]).astype(str)
     )
 
-    # ---- STEP 7: Extract latent vectors ----
-    Z_train = encoder.predict([X_train, C_train], batch_size=2048, verbose=0)
-    Z_test  = encoder.predict([X_test,  C_test],  batch_size=2048, verbose=0)
-
-    print(f"[INFO] Latent shape = {Z_train.shape} (train), {Z_test.shape} (test)")
-
-    # ---- STEP 8: Load anomalies ----
-    anomalies = pd.read_csv(anomalies_csv)
-    anomalies["ts"] = pd.to_datetime(anomalies["ts"])
-
-    # Build a mask for test rows that are anomalies
-    test_ts = pd.to_datetime(df_test["ts"]).reset_index(drop=True)
-    anom_ts = set(anomalies["ts"].tolist())
-
-    is_anom = test_ts.isin(anom_ts).values
-
-    print(f"[INFO] Found {is_anom.sum()} anomalies in TEST set")
-
-    # ---- STEP 9: Sampling for TSNE (avoid >10–15k total) ----
-    if len(Z_train) > max_samples:
-        idx = np.random.choice(len(Z_train), max_samples, replace=False)
-        Z_train_small = Z_train[idx]
-        train_mask_small = idx
-    else:
-        Z_train_small = Z_train
-        train_mask_small = np.arange(len(Z_train))
-
-    if len(Z_test) > max_samples:
-        idx_t = np.random.choice(len(Z_test), max_samples, replace=False)
-        Z_test_small = Z_test[idx_t]
-        is_anom_small = is_anom[idx_t]
-    else:
-        Z_test_small = Z_test
-        is_anom_small = is_anom
-
-    # ---- STEP 10: Prepare data for TSNE ----
-    Z_all = np.vstack([Z_train_small, Z_test_small])
-    labels = np.array(
-        ["TRAIN"] * len(Z_train_small) + ["ANOM" if a else "TEST" for a in is_anom_small]
+    test_key = (
+        feats_test["BankAccountCode"].astype(str) + "|" +
+        feats_test["BusinessUnitCode"].astype(str) + "|" +
+        feats_test["BankTransactionCode"].astype(str) + "|" +
+        pd.to_datetime(feats_test["ts"]).astype(str)
     )
 
-    # ---- STEP 11: Run t-SNE ----
+    is_anom_test = test_key.isin(anoms_key).values
+
+    # --- 6) Build joint latent matrix for t-SNE ---
+    Z_all = np.vstack([Z_train, Z_test])
+    labels = np.concatenate([
+        np.zeros(len(Z_train), dtype=int),                 # 0 = train
+        np.where(is_anom_test, 2, 1).astype(int)           # 1 = test normal, 2 = test anomaly
+    ])
+
+    # --- 7) t-SNE ---
     tsne = TSNE(
         n_components=2,
         perplexity=perplexity,
-        random_state=random_seed,
-        init="random",
+        random_state=random_state,
+        init="pca",
         learning_rate="auto",
-        n_iter=1500
     )
     Z_2d = tsne.fit_transform(Z_all)
 
-    # ---- STEP 12: Plot ----
-    plt.figure(figsize=(10, 8))
+    # --- 8) Plot ---
+    plt.figure(figsize=(8, 6))
 
-    # TRAIN = gray
-    mask_train = labels == "TRAIN"
-    plt.scatter(Z_2d[mask_train, 0], Z_2d[mask_train, 1],
-                s=10, alpha=0.4, c="gray", label="Train")
+    mask_train = labels == 0
+    mask_test_norm = labels == 1
+    mask_test_anom = labels == 2
 
-    # TEST normal = blue
-    mask_test = labels == "TEST"
-    plt.scatter(Z_2d[mask_test, 0], Z_2d[mask_test, 1],
-                s=20, alpha=0.7, c="blue", label="Test (normal)")
+    plt.scatter(Z_2d[mask_train, 0], Z_2d[mask_train, 1], s=10, alpha=0.4, label="Train")
+    plt.scatter(Z_2d[mask_test_norm, 0], Z_2d[mask_test_norm, 1], s=10, alpha=0.4, label="Test normal")
+    plt.scatter(Z_2d[mask_test_anom, 0], Z_2d[mask_test_anom, 1], s=40, alpha=0.9, label="Test anomaly")
 
-    # TEST anomaly = red
-    mask_anom = labels == "ANOM"
-    plt.scatter(Z_2d[mask_anom, 0], Z_2d[mask_anom, 1],
-                s=50, alpha=0.9, c="red", marker="x", label="Anomaly")
-
-    plt.title("2D t-SNE of Latent (bottleneck) Representations")
+    plt.title("t-SNE of AE bottleneck (combo-aware)")
     plt.xlabel("t-SNE dim 1")
     plt.ylabel("t-SNE dim 2")
     plt.grid(True, alpha=0.3)
     plt.legend()
+
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
+
+    if show:
+        plt.show()
+
     plt.close()
 
-    print(f"[SAVED] t-SNE plot -> {out_png}")
+    print(f"[SAVED] {out_png}")
+    return Z_2d, labels
 
-    return out_png
+
+from latent_tsne_combo import plot_latent_tsne
+
+# df_year1, df_year2_janfeb are your raw dataframes
+Z_2d, labels = plot_latent_tsne(
+    df_train_raw=df_year1,
+    df_test_raw=df_year2_janfeb,
+    model_path="combo_ae_outputs/combo_autoencoder.keras",
+    meta_path="combo_ae_outputs/meta.json",
+    anomalies_csv="combo_ae_outputs/anomalies_combo_ae.csv",
+    out_png="latent_tsne_combo.png",
+    show=True,      # <- will display inline
+)
