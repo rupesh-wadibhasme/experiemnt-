@@ -362,3 +362,17 @@ def plot_tsne_per_combo_for_anomalies(
         if p:
             paths.append(p)
     return paths
+
+
+from latent_tsne_per_combo import plot_tsne_per_combo_for_anomalies
+
+paths = plot_tsne_per_combo_for_anomalies(
+    df_train_raw=df_train_year1,
+    df_test_raw=df_test_jan_feb,
+    anomalies_csv_path="combo_ae_outputs/anomalies_combo_ae.csv",
+    out_dir_model="combo_ae_outputs",
+    out_dir_plots="latent_tsne_per_combo",
+    max_combos=10,   # top N combos with anomalies
+    show=True        # show inline + save PNGs
+)
+paths
