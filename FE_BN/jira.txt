@@ -1,0 +1,26 @@
+We apply a structured preprocessing pipeline to clean, normalize, and standardize the raw bank-statement data. Key steps include:
+
+Validating required columns and removing duplicate transactions (based on Txn ID).
+
+Cleaning categorical fields (Account, BU, Code, CashBookFlag) to handle blanks, inconsistent formats, and unknowns.
+
+Deriving a unified timestamp (ts) using PostingDate as primary and ValueDate as fallback.
+
+We engineer a set of stable, interpretable behavioural features:
+
+Posting lag (days) – Payment timing behaviour.
+
+Calendar features – Day-of-week, weekend flag, month, quarter.
+
+Cashbook flag (derived) – Identifies internal/manual postings.
+
+Same-amount-count-per-day – Captures repetitive transfers or structured entries.
+
+Combo string = Account | BusinessUnit | TransactionCode for grouping behavioural patterns.
+
+For each combo (using training data only), we compute robust statistics:
+
+Median & IQR (log-space) of amounts → used to create y_norm, a combo-normalized amount.
+
+MAD in INR → used for anomaly tolerance.
+This produces a final feature matrix: tabular behavioural features + y_norm, enabling the model to learn normal behaviour per combo and detect deviations reliably and explainably.
