@@ -1,3 +1,21 @@
+def build_inputs_with_ynorm(
+    df: pd.DataFrame,
+    tab_cols: List[str],
+    y_norm: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    tab = (
+        df[tab_cols].astype("float32").values
+        if tab_cols
+        else np.zeros((len(df), 0), dtype="float32")
+    )
+    y = y_norm.reshape(-1, 1).astype("float32")
+    X_in = np.hstack([tab, y]).astype("float32")
+    combo_ids = df["combo_id"].astype("int32").values
+    return X_in, combo_ids
+
+
+
+
 # latent_tsne_per_combo.py
 # t-SNE per (Account, BU, Code) combo using the trained combo AE.
 # - Uses the same FE as training (bank_features_simple.build_dataset_from_df)
