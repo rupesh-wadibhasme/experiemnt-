@@ -292,18 +292,36 @@ def plot_tsne_for_single_combo(
     print(f"[INFO] Combo '{combo_str}' anomalies from anomalies CSV rows: {anom_rows_for_combo.tolist()}")
 
     # ----- t-SNE embedding for this combo -----
+        
     Z_all = np.vstack([Z_tr_combo, Z_te_combo])
     n_total = Z_all.shape[0]
 
+    # If too few points, skip – t-SNE is not very meaningful and often unstable
+    if n_total <= 5:
+        print(f"[SKIP] Combo '{combo_str}' has only {n_total} points after filtering; t-SNE skipped.")
+        return ""
+
+    # Base perplexity rule
     perplexity = max(5, min(30, n_total // 3))
-    tsne = TSNE(
-        n_components=2,
-        perplexity=perplexity,
-        random_state=42,
-        init="random",
-        learning_rate="auto",
-    )
-    Z_2d = tsne.fit_transform(Z_all)
+
+    # Ensure perplexity < n_total to avoid ValueError
+    if perplexity >= n_total:
+        perplexity = max(2, n_total // 2)
+
+    try:
+        tsne = TSNE(
+            n_components=2,
+            perplexity=perplexity,
+            random_state=42,
+            init="random",
+            learning_rate="auto",
+        )
+        Z_2d = tsne.fit_transform(Z_all)
+    except ValueError as e:
+        # As a safety net, log and skip this combo instead of crashing everything
+        print(f"[SKIP] t-SNE failed for combo '{combo_str}' with perplexity={perplexity}: {e}")
+        return ""
+
 
     Z_tr_2d = Z_2d[:n_tr]
     Z_te_2d = Z_2d[n_tr:]
