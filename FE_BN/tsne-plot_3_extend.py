@@ -239,10 +239,25 @@ def prepare_latent_and_masks(
     anoms_key_df = anoms[["__key", "__anom_row"]].drop_duplicates()
     ft_idx_df = ft[["__key"]].reset_index().rename(columns={"index": "test_idx"})
 
-    joined = ft_idx_df.merge(anoms_key_df, on="__key", how="left")
-    # anom_row_idx_test[i] = row index in anomalies CSV, or -1 if not anomaly
-    anom_row_idx_test = joined.sort_values("test_idx")["__anom_row"].fillna(-1).astype(int).values
+    # joined = ft_idx_df.merge(anoms_key_df, on="__key", how="left")
+    # # anom_row_idx_test[i] = row index in anomalies CSV, or -1 if not anomaly
+    # anom_row_idx_test = joined.sort_values("test_idx")["__anom_row"].fillna(-1).astype(int).values
+    # anomaly_mask_test = anom_row_idx_test >= 0
+
+    # --- Robust key matching without losing rows ---
+    ft = ft.reset_index(drop=True)
+    
+    # Create dictionary mapping key -> anomaly row index
+    key_to_row = dict(zip(anoms_key_df["__key"], anoms_key_df["__anom_row"]))
+    
+    # Build aligned array exactly matching feats_test row count
+    anom_row_idx_test = np.array(
+        [key_to_row.get(k, -1) for k in ft["__key"].tolist()],
+        dtype=int
+    )
+    
     anomaly_mask_test = anom_row_idx_test >= 0
+
 
     return feats_train, feats_test, Z_train, Z_test, anomaly_mask_test, anom_row_idx_test
 
