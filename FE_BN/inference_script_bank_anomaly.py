@@ -454,34 +454,6 @@ def score_bank_statement_df(
 
     return df_out
 
-# ====== convenience function for file-based usage (optional) ======
-
-def score_bank_statement_file(
-    input_path: str,
-    output_path: str,
-    model_dir: str = OUT_DIR_DEFAULT,
-    **kwargs,
-) -> pd.DataFrame:
-    """
-    Convenience wrapper:
-      - Reads input CSV/Excel.
-      - Runs score_bank_statement_df.
-      - Saves to output_path.
-    """
-    ext = os.path.splitext(input_path)[1].lower()
-    if ext in [".xlsx", ".xls"]:
-        df_raw = pd.read_excel(input_path)
-    else:
-        df_raw = pd.read_csv(input_path)
-
-    df_scored = score_bank_statement_df(
-        df_raw=df_raw,
-        model_dir=model_dir,
-        output_path=output_path,
-        **kwargs,
-    )
-    return df_scored
-
 if __name__ == "__main__":
     import argparse
 
@@ -502,20 +474,3 @@ if __name__ == "__main__":
         output_path=args.output,
         model_dir=args.model_dir,
     )
-
-
-
-from combo_ae_inference import score_bank_statement_df
-
-def handle_daily_statement(payload_json: dict) -> dict:
-    # Convert payload to DataFrame
-    df_raw = pd.DataFrame(payload_json["transactions"])
-    df_scored = score_bank_statement_df(df_raw, model_dir="combo_ae_outputs")
-
-    # Only expose original + anomaly columns, if you prefer
-    cols_to_return = [c for c in df_raw.columns] + ["Anomaly", "AnomalyReason"]
-    df_api = df_scored[cols_to_return]
-
-    return {
-        "transactions": df_api.to_dict(orient="records")
-    }
