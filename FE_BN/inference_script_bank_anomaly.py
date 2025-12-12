@@ -502,3 +502,20 @@ if __name__ == "__main__":
         output_path=args.output,
         model_dir=args.model_dir,
     )
+
+
+
+from combo_ae_inference import score_bank_statement_df
+
+def handle_daily_statement(payload_json: dict) -> dict:
+    # Convert payload to DataFrame
+    df_raw = pd.DataFrame(payload_json["transactions"])
+    df_scored = score_bank_statement_df(df_raw, model_dir="combo_ae_outputs")
+
+    # Only expose original + anomaly columns, if you prefer
+    cols_to_return = [c for c in df_raw.columns] + ["Anomaly", "AnomalyReason"]
+    df_api = df_scored[cols_to_return]
+
+    return {
+        "transactions": df_api.to_dict(orient="records")
+    }
