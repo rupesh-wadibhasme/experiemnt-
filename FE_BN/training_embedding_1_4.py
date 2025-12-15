@@ -503,12 +503,13 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
 
     # 1) FE
     feats_all, tab_cols, _ = build_dataset_from_excel(df_all)
-    # drop features we don't want in recon
     tab_cols = [c for c in tab_cols if c not in IGNORE_FOR_RECON]
 
     # 2) Split
     base_train_mask, test_mask = time_split_10m_train_2m_test(feats_all, ts_col="ts")
-    train_mask, valid_mask = train_valid_split_from_train_tail(feats_all, base_train_mask, ts_col="ts", valid_frac=valid_frac)
+    train_mask, valid_mask = train_valid_split_from_train_tail(
+        feats_all, base_train_mask, ts_col="ts", valid_frac=valid_frac
+    )
 
     df_train = feats_all.loc[train_mask].reset_index(drop=True)
     df_valid = feats_all.loc[valid_mask].reset_index(drop=True)
@@ -523,31 +524,31 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
     # 3) Per-combo stats (TRAIN ONLY)
     stats_train = build_combo_stats_train(df_train)
 
-    # NEW: add count_norm to each split using TRAIN stats only
+    # NEW: add count_norm to each split using TRAIN stats only (MUST be before X building)
     df_train = add_count_norm(df_train, stats_train)
     df_valid = add_count_norm(df_valid, stats_train)
     df_test  = add_count_norm(df_test,  stats_train)
-    
-    # ensure count_norm is part of AE tabular features
+
+    # ensure count_norm is part of AE tabular features (MUST be before X building)
     if "count_norm" not in tab_cols:
         tab_cols = tab_cols + ["count_norm"]
 
     # Save per-combo stats for inference
-    os.makedirs(OUT_DIR, exist_ok=True)
     combo_stats_path = os.path.join(OUT_DIR, COMBO_STATS_JSON)
     with open(combo_stats_path, "w") as f:
         json.dump(stats_to_jsonable(stats_train), f, indent=2)
+
     # 4) y_norm
     y_train = normalize_amount(df_train, stats_train)
     y_valid = normalize_amount(df_valid, stats_train)
     y_test  = normalize_amount(df_test,  stats_train)
 
-    # 5) AE inputs
+    # 5) AE inputs (NOW includes count_norm)
     Xtr, Ctr, col_names, j_y = build_inputs_with_ynorm(df_train, tab_cols, y_train)
     Xva, Cva, _,   _         = build_inputs_with_ynorm(df_valid, tab_cols, y_valid)
     Xte, Cte, _,   _         = build_inputs_with_ynorm(df_test,  tab_cols, y_test)
 
-    # 6) Weights
+    # 6) Weights (must use final tab_cols length)
     w_row_tr, col_w = build_sample_weights_for_recon(df_train, y_train, stats_train, n_tab=len(tab_cols), j_y=j_y)
     w_row_va, _     = build_sample_weights_for_recon(df_valid, y_valid, stats_train, n_tab=len(tab_cols), j_y=j_y)
 
@@ -585,7 +586,7 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
     for c, g in df_thr.groupby("combo"):
         if len(g) >= MIN_SAMPLES_PER_COMBO_THR:
             thr_per_combo[c] = float(np.percentile(g["err"].values, THRESHOLD_PERCENTILE))
-            
+
     # Save thresholds for inference
     thr_obj = thresholds_to_jsonable(thr_global, thr_per_combo)
     thresholds_path = os.path.join(OUT_DIR, THRESHOLDS_JSON)
@@ -625,7 +626,6 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
         out["thr_recon"] = thr_vec[idx]
         out["is_anomaly"] = 1
 
-        # --- top 2 deviating features (excluding amount/y_norm) ---
         dev = compute_top_feature_deviations(
             X_true=Xte,
             X_pred=Xte_pred,
@@ -638,7 +638,6 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
         for k, vals in dev.items():
             out[k] = vals
 
-        # Reason text (now also mentions other features if present)
         out["reason"] = out.apply(format_reason, axis=1)
 
         keep = [
@@ -655,7 +654,6 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
                       .reset_index(drop=True)
 
     # save artifacts
-    os.makedirs(OUT_DIR, exist_ok=True)
     anomalies.to_csv(os.path.join(OUT_DIR, OUTPUT_CSV), index=False)
     with open(os.path.join(OUT_DIR, COMBO_MAP_JSON), "w") as f:
         json.dump(make_combo_map_from_train(df_train), f, indent=2)
@@ -682,7 +680,7 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
         count_iqr_floor=float(COUNT_IQR_FLOOR),
         count_norm_clip_lo=float(COUNT_NORM_CLIP_LO),
         count_norm_clip_hi=float(COUNT_NORM_CLIP_HI),
-        count_day_col=str(COUNT_DAY_COL)
+        count_day_col=str(COUNT_DAY_COL),
     )
     with open(os.path.join(OUT_DIR, META_JSON), "w") as f:
         json.dump(meta, f, indent=2)
@@ -707,9 +705,7 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
 
     # --- FE on TRAIN df ---
     feats_train_all, tab_cols_train, _ = build_dataset_from_excel(df_train_all)
-    # drop ignored features
     tab_cols_train = [c for c in tab_cols_train if c not in IGNORE_FOR_RECON]
-
     df_train, df_valid = split_train_valid_tail_full(feats_train_all, ts_col="ts", valid_frac=valid_frac)
 
     # combo map from TRAIN
@@ -718,26 +714,25 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
     df_valid = apply_combo_map(df_valid, combo_map)
 
     # --- FE on TEST df ---
-    feats_test_all, tab_cols_test, _ = build_dataset_from_excel(df_test_all)
-    # align tabular columns to TRAIN's set (after ignoring some)
-    tab_cols = [c for c in tab_cols_train if c in feats_test_all.columns]
-
+    feats_test_all, _, _ = build_dataset_from_excel(df_test_all)
     df_test = apply_combo_map(feats_test_all, combo_map)
+
+    # Align tabular columns to TRAIN's set (after ignoring some)
+    tab_cols = [c for c in tab_cols_train if c in df_test.columns]
 
     # 3) Per-combo stats (TRAIN ONLY)
     stats_train = build_combo_stats_train(df_train)
 
-    # NEW: add count_norm to each split using TRAIN stats only
+    # NEW: add count_norm to each split using TRAIN stats only (MUST be before X building)
     df_train = add_count_norm(df_train, stats_train)
     df_valid = add_count_norm(df_valid, stats_train)
     df_test  = add_count_norm(df_test,  stats_train)
-    
-    # ensure count_norm is part of AE tabular features
+
+    # ensure count_norm is part of AE tabular features (MUST be before X building)
     if "count_norm" not in tab_cols:
         tab_cols = tab_cols + ["count_norm"]
 
-     # Save per-combo stats for inference
-    os.makedirs(OUT_DIR, exist_ok=True)
+    # Save per-combo stats for inference
     combo_stats_path = os.path.join(OUT_DIR, COMBO_STATS_JSON)
     with open(combo_stats_path, "w") as f:
         json.dump(stats_to_jsonable(stats_train), f, indent=2)
@@ -747,23 +742,14 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
     y_valid = normalize_amount(df_valid, stats_train)
     y_test  = normalize_amount(df_test,  stats_train)
 
-    # 5) AE inputs
+    # 5) AE inputs (NOW includes count_norm)
     Xtr, Ctr, col_names, j_y = build_inputs_with_ynorm(df_train, tab_cols, y_train)
     Xva, Cva, _,   _         = build_inputs_with_ynorm(df_valid, tab_cols, y_valid)
     Xte, Cte, _,   _         = build_inputs_with_ynorm(df_test,  tab_cols, y_test)
 
-    # 6) Weights
+    # 6) Weights (must use final tab_cols length)
     w_row_tr, col_w = build_sample_weights_for_recon(df_train, y_train, stats_train, n_tab=len(tab_cols), j_y=j_y)
     w_row_va, _     = build_sample_weights_for_recon(df_valid, y_valid, stats_train, n_tab=len(tab_cols), j_y=j_y)
-
-    # NEW: add count_norm to each split using TRAIN stats only
-    df_train = add_count_norm(df_train, stats_train)
-    df_valid = add_count_norm(df_valid, stats_train)
-    df_test  = add_count_norm(df_test,  stats_train)
-
-    # ensure count_norm is part of AE tabular features
-    if "count_norm" not in tab_cols:
-        tab_cols = tab_cols + ["count_norm"]
 
     # 7) Model
     model = make_autoencoder(
@@ -839,7 +825,6 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
         out["thr_recon"] = thr_vec[idx]
         out["is_anomaly"] = 1
 
-        # --- top 2 deviating features (excluding y_norm) ---
         dev = compute_top_feature_deviations(
             X_true=Xte,
             X_pred=Xte_pred,
@@ -868,7 +853,6 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
                       .reset_index(drop=True)
 
     # save artifacts
-    os.makedirs(OUT_DIR, exist_ok=True)
     anomalies.to_csv(os.path.join(OUT_DIR, OUTPUT_CSV), index=False)
     with open(os.path.join(OUT_DIR, COMBO_MAP_JSON), "w") as f:
         json.dump(make_combo_map_from_train(df_train), f, indent=2)
@@ -895,7 +879,7 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
         count_iqr_floor=float(COUNT_IQR_FLOOR),
         count_norm_clip_lo=float(COUNT_NORM_CLIP_LO),
         count_norm_clip_hi=float(COUNT_NORM_CLIP_HI),
-        count_day_col=str(COUNT_DAY_COL)
+        count_day_col=str(COUNT_DAY_COL),
     )
     with open(os.path.join(OUT_DIR, META_JSON), "w") as f:
         json.dump(meta, f, indent=2)
@@ -905,6 +889,7 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
     print(f"learning curve: {os.path.join(OUT_DIR, LEARNING_CURVE_PNG)}")
 
     return anomalies, meta
+
 
 # ====== Convenience entry ======
 def run_pipeline(df_all_or_train: pd.DataFrame,
