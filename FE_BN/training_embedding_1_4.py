@@ -727,6 +727,15 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
     # 3) Per-combo stats (TRAIN ONLY)
     stats_train = build_combo_stats_train(df_train)
 
+    # NEW: add count_norm to each split using TRAIN stats only
+    df_train = add_count_norm(df_train, stats_train)
+    df_valid = add_count_norm(df_valid, stats_train)
+    df_test  = add_count_norm(df_test,  stats_train)
+    
+    # ensure count_norm is part of AE tabular features
+    if "count_norm" not in tab_cols:
+        tab_cols = tab_cols + ["count_norm"]
+
      # Save per-combo stats for inference
     os.makedirs(OUT_DIR, exist_ok=True)
     combo_stats_path = os.path.join(OUT_DIR, COMBO_STATS_JSON)
