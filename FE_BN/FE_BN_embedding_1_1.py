@@ -147,6 +147,14 @@ def engineer_basic_features(df: pd.DataFrame) -> pd.DataFrame:
         out[BUSUNIT_COL].astype(str) + "|" +
         out[CODE_COL].astype(str)
     )
+    # ---------- New addition -------
+    # daily transaction count per (Account, BU, Code, ValueDateKey)
+    group_cols = [ACCOUNT_COL, BUSUNIT_COL, CODE_COL, DATE_COL_VALUE]
+    out["trans_count_day"] = (
+        out.groupby(group_cols)[AMOUNT_COL].transform("size").astype("int32")
+    )
+    out["trans_count_log"] = np.log1p(out["trans_count_day"].astype("float32"))
+
 
     return out
 
