@@ -54,6 +54,12 @@ MAD_MULT                  = 0.8
 # reproducibility
 GLOBAL_SEED               = 42
 
+# count normalization
+COUNT_IQR_FLOOR      = 0.10
+COUNT_NORM_CLIP_LO   = -10.0
+COUNT_NORM_CLIP_HI   =  10.0
+COUNT_DAY_COL        = "ValueDateKey"   # preferred; fallback to ts-derived day if missing
+
 # OOV combo id tag
 OOV_ID_NAME               = "__OOV__"
 
@@ -120,9 +126,13 @@ def build_combo_stats_train(df_train: pd.DataFrame) -> Dict[str, Dict[str, float
     Compute per-combo stats from TRAIN ONLY:
       - median_log and iqr_log of signed_log1p(amount)
       - mad_inr on raw amount
-      - count
+      - count (rows per combo)
+      - count_median_log and count_iqr_log of log1p(daily_count) across days per combo
+      - _global fallback for count stats
     """
     stats: Dict[str, Dict[str, float]] = {}
+
+    # ---- amount-based stats (existing) ----
     for combo, g in df_train.groupby("combo_str", sort=False):
         a = g["amount"].astype(float).values
         l = signed_log1p(a)
@@ -134,13 +144,47 @@ def build_combo_stats_train(df_train: pd.DataFrame) -> Dict[str, Dict[str, float
             "mad_inr": mad,
             "count": int(len(a))
         }
+
+    # ---- count stats across days (NEW) ----
+    if COUNT_DAY_COL in df_train.columns:
+        day_key = df_train[COUNT_DAY_COL]
+    else:
+        # fallback to day derived from ts
+        if "ts" not in df_train.columns:
+            raise ValueError("Need ValueDateKey or ts column to compute daily counts.")
+        day_key = pd.to_datetime(df_train["ts"]).dt.strftime("%Y%m%d")
+
+    daily = (
+        pd.DataFrame({
+            "combo_str": df_train["combo_str"].astype(str).values,
+            "day_key": day_key.astype(str).values
+        })
+        .groupby(["combo_str", "day_key"])
+        .size()
+        .rename("count_day")
+        .reset_index()
+    )
+    daily["count_log"] = np.log1p(daily["count_day"].astype("float32"))
+
+    # global fallback
+    g_med = float(np.median(daily["count_log"].values)) if len(daily) else 0.0
+    g_iqr = float(np.percentile(daily["count_log"].values, 75) - np.percentile(daily["count_log"].values, 25)) if len(daily) else 1.0
+    g_iqr = float(max(g_iqr, COUNT_IQR_FLOOR))
+    stats["_global"] = {"count_median_log": g_med, "count_iqr_log": g_iqr}
+
+    # per-combo daily distribution
+    for combo, s in daily.groupby("combo_str")["count_log"]:
+        med = float(np.median(s.values))
+        iqr = float(np.percentile(s.values, 75) - np.percentile(s.values, 25))
+        iqr = float(max(iqr, COUNT_IQR_FLOOR))
+        stats.setdefault(combo, {})
+        stats[combo]["count_median_log"] = med
+        stats[combo]["count_iqr_log"] = iqr
+
     return stats
 
+
 def stats_to_jsonable(stats: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, float]]:
-    """
-    Convert stats_train dict to JSON-safe structure:
-      { combo_str: {median_log: float, iqr_log: float, mad_inr: float, count: int} }
-    """
     out: Dict[str, Dict[str, float]] = {}
     for combo, d in stats.items():
         out[str(combo)] = {
@@ -148,8 +192,12 @@ def stats_to_jsonable(stats: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str,
             "iqr_log": float(d.get("iqr_log", 1.0)),
             "mad_inr": float(d.get("mad_inr", 1.0)),
             "count": int(d.get("count", 0)),
+            # NEW (safe defaults)
+            "count_median_log": float(d.get("count_median_log", 0.0)),
+            "count_iqr_log": float(d.get("count_iqr_log", 1.0)),
         }
     return out
+
 
 
 def thresholds_to_jsonable(thr_global: float,
@@ -184,6 +232,48 @@ def normalize_amount(df: pd.DataFrame, stats: Dict[str, Dict[str, float]]) -> np
 
     y_norm = (l - med) / iqr
     return y_norm.astype(np.float32)
+
+def add_count_norm(df: pd.DataFrame, stats: Dict[str, Dict[str, float]]) -> pd.DataFrame:
+    """
+    Adds:
+      - trans_count_day: count per (combo_str, day)
+      - count_norm: (log1p(count_day) - count_median_log_combo) / count_iqr_log_combo
+    Uses TRAIN stats only, with _global fallback.
+    """
+    d = df.copy()
+
+    # pick day key
+    if COUNT_DAY_COL in d.columns:
+        day_key = d[COUNT_DAY_COL].astype(str)
+    else:
+        if "ts" not in d.columns:
+            raise ValueError("Need ValueDateKey or ts column to compute daily counts.")
+        day_key = pd.to_datetime(d["ts"]).dt.strftime("%Y%m%d")
+
+    # per-row daily count within the provided df
+    d["_day_key_tmp"] = day_key
+    d["trans_count_day"] = (
+        d.groupby(["combo_str", "_day_key_tmp"])["combo_str"]
+         .transform("size")
+         .astype("float32")
+    )
+    cnt_log = np.log1p(d["trans_count_day"].values.astype(np.float32))
+
+    g = stats.get("_global", {})
+    med_all = float(g.get("count_median_log", np.median(cnt_log) if len(cnt_log) else 0.0))
+    iqr_all = float(g.get("count_iqr_log", max((np.percentile(cnt_log, 75) - np.percentile(cnt_log, 25)) if len(cnt_log) else 1.0, COUNT_IQR_FLOOR)))
+
+    combo_list = d["combo_str"].astype(str).values
+    med = np.array([stats.get(c, {}).get("count_median_log", med_all) for c in combo_list], dtype=np.float32)
+    iqr = np.array([stats.get(c, {}).get("count_iqr_log", iqr_all) for c in combo_list], dtype=np.float32)
+    iqr = np.maximum(iqr, COUNT_IQR_FLOOR)
+
+    d["count_norm"] = ((cnt_log - med) / iqr).clip(COUNT_NORM_CLIP_LO, COUNT_NORM_CLIP_HI).astype("float32")
+
+    d = d.drop(columns=["_day_key_tmp"])
+    return d
+
+
 
 def invert_pred_to_inr(df: pd.DataFrame, y_norm_pred: np.ndarray, stats: Dict[str, Dict[str, float]]) -> np.ndarray:
     """
@@ -579,7 +669,11 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
         pct_tol=float(PCT_TOL),
         mad_mult=float(MAD_MULT),
         model_path=os.path.join(OUT_DIR, MODEL_PATH),
-        learning_curve=os.path.join(OUT_DIR, LEARNING_CURVE_PNG)
+        learning_curve=os.path.join(OUT_DIR, LEARNING_CURVE_PNG),
+        count_iqr_floor=float(COUNT_IQR_FLOOR),
+        count_norm_clip_lo=float(COUNT_NORM_CLIP_LO),
+        count_norm_clip_hi=float(COUNT_NORM_CLIP_HI),
+        count_day_col=str(COUNT_DAY_COL)
     )
     with open(os.path.join(OUT_DIR, META_JSON), "w") as f:
         json.dump(meta, f, indent=2)
@@ -643,6 +737,15 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
     # 6) Weights
     w_row_tr, col_w = build_sample_weights_for_recon(df_train, y_train, stats_train, n_tab=len(tab_cols), j_y=j_y)
     w_row_va, _     = build_sample_weights_for_recon(df_valid, y_valid, stats_train, n_tab=len(tab_cols), j_y=j_y)
+
+    # NEW: add count_norm to each split using TRAIN stats only
+    df_train = add_count_norm(df_train, stats_train)
+    df_valid = add_count_norm(df_valid, stats_train)
+    df_test  = add_count_norm(df_test,  stats_train)
+
+    # ensure count_norm is part of AE tabular features
+    if "count_norm" not in tab_cols:
+        tab_cols = tab_cols + ["count_norm"]
 
     # 7) Model
     model = make_autoencoder(
@@ -770,7 +873,11 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
         pct_tol=float(PCT_TOL),
         mad_mult=float(MAD_MULT),
         model_path=os.path.join(OUT_DIR, MODEL_PATH),
-        learning_curve=os.path.join(OUT_DIR, LEARNING_CURVE_PNG)
+        learning_curve=os.path.join(OUT_DIR, LEARNING_CURVE_PNG),
+        count_iqr_floor=float(COUNT_IQR_FLOOR),
+        count_norm_clip_lo=float(COUNT_NORM_CLIP_LO),
+        count_norm_clip_hi=float(COUNT_NORM_CLIP_HI),
+        count_day_col=str(COUNT_DAY_COL)
     )
     with open(os.path.join(OUT_DIR, META_JSON), "w") as f:
         json.dump(meta, f, indent=2)
