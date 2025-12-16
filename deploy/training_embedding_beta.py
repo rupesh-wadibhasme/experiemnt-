@@ -288,19 +288,45 @@ def build_inputs_with_ynorm(df: pd.DataFrame,
                             tab_cols: List[str],
                             y_norm: np.ndarray) -> Tuple[np.ndarray, np.ndarray, List[str], int]:
     """
-    Returns:
-      X_in: float32 matrix of [tabular_features, y_norm]  (this is what AE reconstructs)
-      X_combo: int32 vector of combo_id                  (goes through embedding)
+    UPDATED:
+      X_in: float32 matrix of [tabular_features, y_norm]
+      cat_ids: int32 matrix (N,4) holding [combo_id, account_id, bu_id, code_id]
       col_names: names corresponding to X_in columns
       j_y: column index of y_norm within X_in
+
+    Backward-compatible behavior:
+      - If account_id/bu_id/code_id are missing, they will be filled with 0.
+      - combo_id must exist (your pipeline already ensures it).
     """
     tab = df[tab_cols].astype("float32").values if tab_cols else np.zeros((len(df), 0), dtype="float32")
     y = y_norm.reshape(-1, 1).astype("float32")
     X_in = np.hstack([tab, y]).astype("float32")
-    X_combo = df["combo_id"].astype("int32").values
+
+    # Build cat id matrix expected by the updated model:
+    # [combo_id, account_id, bu_id, code_id]
+    combo = df["combo_id"].astype("int32").values
+
+    if "account_id" in df.columns:
+        acct = df["account_id"].astype("int32").values
+    else:
+        acct = np.zeros(len(df), dtype="int32")
+
+    if "bu_id" in df.columns:
+        bu = df["bu_id"].astype("int32").values
+    else:
+        bu = np.zeros(len(df), dtype="int32")
+
+    if "code_id" in df.columns:
+        code = df["code_id"].astype("int32").values
+    else:
+        code = np.zeros(len(df), dtype="int32")
+
+    cat_ids = np.stack([combo, acct, bu, code], axis=1).astype("int32")
+
     col_names = list(tab_cols) + ["y_norm"]
     j_y = len(col_names) - 1
-    return X_in, X_combo, col_names, j_y
+    return X_in, cat_ids, col_names, j_y
+
 
 def build_sample_weights_for_recon(df: pd.DataFrame,
                                    y_norm: np.ndarray,
@@ -335,21 +361,58 @@ def make_weighted_mse(col_w: np.ndarray):
         return tf.reduce_mean(tf.reduce_mean(se, axis=1))
     return loss_fn
 
-def make_autoencoder(n_in: int, n_combos: int, embed_dim=16,
-                     enc_units=(128,64), dec_units=(64,128),
-                     lr=1e-3, col_w: Optional[np.ndarray] = None) -> Model:
+def make_autoencoder(
+    n_in: int,
+    n_combos: int,
+    n_accounts: int,
+    n_busunits: int,
+    n_codes: int,
+    embed_dim: int = 16,
+    enc_units=(128, 64),
+    dec_units=(64, 128),
+    lr: float = 1e-3,
+    col_w: Optional[np.ndarray] = None,
+    # optional per-field embedding dims 
+    account_embed_dim: Optional[int] = None,
+    bu_embed_dim: Optional[int] = None,
+    code_embed_dim: Optional[int] = None,
+) -> Model:
     """
-    AE that reconstructs X_in (tabular + y_norm), with combo embedding as conditioning.
-    """
-    inp_vec = layers.Input(shape=(n_in,), name="x_in")                # numeric vector to reconstruct
-    inp_combo = layers.Input(shape=(), dtype="int32", name="combo_id")# combo id for embedding
+    UPDATED:
+    AE that reconstructs X_in (tabular + y_norm), conditioned on multiple embeddings:
+      - combo_id, account_id, bu_id, code_id
 
-    # embedding path
-    emb = layers.Embedding(input_dim=max(n_combos, 1), output_dim=embed_dim, name="combo_emb")(inp_combo)
-    emb = layers.Flatten()(emb)
+    Inputs:
+      - x_in: shape (n_in,) float32
+      - cat_ids: shape (4,) int32  -> [combo_id, account_id, bu_id, code_id]
+    """
+    # defaults for per-cat embedding dims
+    account_embed_dim = int(account_embed_dim or max(2, embed_dim // 2))
+    bu_embed_dim      = int(bu_embed_dim      or max(2, embed_dim // 2))
+    code_embed_dim    = int(code_embed_dim    or max(2, embed_dim // 2))
+
+    inp_vec = layers.Input(shape=(n_in,), name="x_in")
+    inp_ids = layers.Input(shape=(4,), dtype="int32", name="cat_ids")  # [combo, acct, bu, code]
+
+    # slice ids
+    combo_id = layers.Lambda(lambda x: x[:, 0], name="combo_id")(inp_ids)
+    acct_id  = layers.Lambda(lambda x: x[:, 1], name="account_id")(inp_ids)
+    bu_id    = layers.Lambda(lambda x: x[:, 2], name="bu_id")(inp_ids)
+    code_id  = layers.Lambda(lambda x: x[:, 3], name="code_id")(inp_ids)
+
+    # embeddings
+    emb_combo = layers.Embedding(input_dim=max(int(n_combos), 1), output_dim=int(embed_dim), name="combo_emb")(combo_id)
+    emb_acct  = layers.Embedding(input_dim=max(int(n_accounts), 1), output_dim=int(account_embed_dim), name="acct_emb")(acct_id)
+    emb_bu    = layers.Embedding(input_dim=max(int(n_busunits), 1), output_dim=int(bu_embed_dim), name="bu_emb")(bu_id)
+    emb_code  = layers.Embedding(input_dim=max(int(n_codes), 1), output_dim=int(code_embed_dim), name="code_emb")(code_id)
+
+    emb_combo = layers.Flatten()(emb_combo)
+    emb_acct  = layers.Flatten()(emb_acct)
+    emb_bu    = layers.Flatten()(emb_bu)
+    emb_code  = layers.Flatten()(emb_code)
 
     # encoder
-    x = layers.Concatenate()([inp_vec, emb])
+    x = layers.Concatenate()([inp_vec, emb_combo, emb_acct, emb_bu, emb_code])
     for h in enc_units:
         x = layers.Dense(h, activation="relu")(x)
     bottleneck = layers.Dense(enc_units[-1], activation="relu", name="bottleneck")(x)
@@ -360,9 +423,10 @@ def make_autoencoder(n_in: int, n_combos: int, embed_dim=16,
         y = layers.Dense(h, activation="relu")(y)
     out = layers.Dense(n_in, activation=None, name="x_recon")(y)
 
-    m = Model(inputs=[inp_vec, inp_combo], outputs=out, name="combo_autoencoder")
+    m = Model(inputs=[inp_vec, inp_ids], outputs=out, name="combo_autoencoder")
+
     loss_fn = losses.MeanSquaredError() if col_w is None else make_weighted_mse(col_w)
-    m.compile(optimizer=optimizers.Adam(learning_rate=LR), loss=loss_fn)
+    m.compile(optimizer=optimizers.Adam(learning_rate=lr), loss=loss_fn)
     return m
 
 def row_recon_error(X_true: np.ndarray, X_pred: np.ndarray, col_w: Optional[np.ndarray]) -> np.ndarray:
@@ -551,16 +615,25 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
     w_row_tr, col_w = build_sample_weights_for_recon(df_train, y_train, stats_train, n_tab=len(tab_cols), j_y=j_y)
     w_row_va, _     = build_sample_weights_for_recon(df_valid, y_valid, stats_train, n_tab=len(tab_cols), j_y=j_y)
 
+    n_combos    = len(combo_map)
+    n_accounts  = int(df_train["account_id"].max()) + 1
+    n_busunits  = int(df_train["bu_id"].max()) + 1
+    n_codes     = int(df_train["code_id"].max()) + 1
+
     # 7) Model
     model = make_autoencoder(
-        n_in=Xtr.shape[1],
-        n_combos=len(combo_map),
-        embed_dim=EMBED_DIM,
-        enc_units=ENC_UNITS,
-        dec_units=DEC_UNITS,
-        lr=LR,
-        col_w=col_w
+    n_in=Xtr.shape[1],
+    n_combos=n_combos,
+    n_accounts=n_accounts,
+    n_busunits=n_busunits,
+    n_codes=n_codes,
+    embed_dim=EMBED_DIM,
+    enc_units=ENC_UNITS,
+    dec_units=DEC_UNITS,
+    lr=LR,
+    col_w=col_w
     )
+
     hist = model.fit(
         [Xtr, Ctr], Xtr,
         validation_data=([Xva, Cva], Xva, w_row_va),
