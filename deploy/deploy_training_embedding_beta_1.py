@@ -554,6 +554,67 @@ def apply_combo_map(df: pd.DataFrame, combo_map: Dict[str, int]) -> pd.DataFrame
     d["combo_id"] = d["combo_str"].map(combo_map).fillna(oov_id).astype(int)
     return d
 
+def compute_vocab_sizes_from_splits(
+    combo_map: Dict[str, int],
+    df_train: pd.DataFrame,
+    df_valid: Optional[pd.DataFrame] = None,
+    df_test: Optional[pd.DataFrame] = None,
+) -> Tuple[int, int, int, int]:
+    """
+    Compute embedding vocab sizes so that ALL ids that can appear during fit/predict
+    are within range [0, input_dim).
+
+    This fixes the crash when valid has category ids not present in df_train slice.
+    """
+    n_combos = int(len(combo_map))  # includes OOV already
+
+    def _max_id(col: str) -> int:
+        parts = []
+        for d in (df_train, df_valid, df_test):
+            if d is not None and col in d.columns and len(d) > 0:
+                parts.append(pd.to_numeric(d[col], errors="coerce").fillna(0).astype("int64"))
+        if not parts:
+            return 0
+        return int(pd.concat(parts).max())
+
+    n_accounts = _max_id("account_id") + 1
+    n_busunits = _max_id("bu_id") + 1
+    n_codes    = _max_id("code_id") + 1
+
+    # hard floor (Embedding(input_dim=0) is invalid)
+    n_accounts = max(n_accounts, 1)
+    n_busunits = max(n_busunits, 1)
+    n_codes    = max(n_codes, 1)
+
+    return n_combos, n_accounts, n_busunits, n_codes
+
+
+def assert_cat_ids_in_range(
+    cat_ids: np.ndarray,
+    n_combos: int,
+    n_accounts: int,
+    n_busunits: int,
+    n_codes: int,
+    where: str = "",
+) -> None:
+    """
+    Fail fast with a clear message *before* Keras crashes inside GatherV2.
+    cat_ids is (N,4): [combo_id, account_id, bu_id, code_id]
+    """
+    if cat_ids.ndim != 2 or cat_ids.shape[1] != 4:
+        raise ValueError(f"{where}: cat_ids must be shape (N,4); got {cat_ids.shape}")
+
+    max_combo, max_acct, max_bu, max_code = cat_ids.max(axis=0)
+
+    problems = []
+    if max_combo >= n_combos:   problems.append(f"combo_id max={max_combo} >= n_combos={n_combos}")
+    if max_acct >= n_accounts: problems.append(f"account_id max={max_acct} >= n_accounts={n_accounts}")
+    if max_bu >= n_busunits:   problems.append(f"bu_id max={max_bu} >= n_busunits={n_busunits}")
+    if max_code >= n_codes:    problems.append(f"code_id max={max_code} >= n_codes={n_codes}")
+
+    if problems:
+        raise ValueError(f"{where}: Embedding id out of range. " + " | ".join(problems))
+
 # ====== internal split pipeline (single DF) ======
 def run_pipeline_internal_split_df(df_all: pd.DataFrame,
                                    valid_frac: float = VALID_FRAC_IN_TRAIN) -> Tuple[pd.DataFrame, Dict[str, Any]]:
@@ -615,10 +676,17 @@ def run_pipeline_internal_split_df(df_all: pd.DataFrame,
     w_row_tr, col_w = build_sample_weights_for_recon(df_train, y_train, stats_train, n_tab=len(tab_cols), j_y=j_y)
     w_row_va, _     = build_sample_weights_for_recon(df_valid, y_valid, stats_train, n_tab=len(tab_cols), j_y=j_y)
 
-    n_combos    = len(combo_map)
-    n_accounts  = int(df_train["account_id"].max()) + 1
-    n_busunits  = int(df_train["bu_id"].max()) + 1
-    n_codes     = int(df_train["code_id"].max()) + 1
+    n_combos, n_accounts, n_busunits, n_codes = compute_vocab_sizes_from_splits(
+    combo_map=combo_map,
+    df_train=df_train,
+    df_valid=df_valid,
+    df_test=df_test,   # safe; internal pipeline predicts on test too
+     )
+
+    # fail fast (much clearer than GatherV2)
+    assert_cat_ids_in_range(Ctr, n_combos, n_accounts, n_busunits, n_codes, where="internal/train")
+    assert_cat_ids_in_range(Cva, n_combos, n_accounts, n_busunits, n_codes, where="internal/valid")
+
 
     # 7) Model
     model = make_autoencoder(
@@ -823,10 +891,16 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
     w_row_tr, col_w = build_sample_weights_for_recon(df_train, y_train, stats_train, n_tab=len(tab_cols), j_y=j_y)
     w_row_va, _     = build_sample_weights_for_recon(df_valid, y_valid, stats_train, n_tab=len(tab_cols), j_y=j_y)
 
-    n_combos    = len(combo_map)
-    n_accounts  = int(df_train["account_id"].max()) + 1
-    n_busunits  = int(df_train["bu_id"].max()) + 1
-    n_codes     = int(df_train["code_id"].max()) + 1
+    n_combos, n_accounts, n_busunits, n_codes = compute_vocab_sizes_from_splits(
+    combo_map=combo_map,
+    df_train=df_train,
+    df_valid=df_valid,
+    df_test=df_test,   # safe; you score test right after training
+    )
+
+    assert_cat_ids_in_range(Ctr, n_combos, n_accounts, n_busunits, n_codes, where="external/train")
+    assert_cat_ids_in_range(Cva, n_combos, n_accounts, n_busunits, n_codes, where="external/valid")
+
 
     # 7) Model
     model = make_autoencoder(
