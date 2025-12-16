@@ -1,4 +1,3 @@
-
 import os, json, random
 from typing import Dict, Tuple, List, Any, Optional
 import numpy as np
@@ -12,7 +11,7 @@ import tensorflow as tf
 from tensorflow.keras import layers, callbacks, optimizers, losses, Model
 
 # === bring FE (must exist) ===
-from FE_BN_embeding_1_1 import build_dataset_from_excel
+from FE_BN_embeding_beta import build_dataset_from_excel
 
 # ====== config ======
 OUT_DIR                   = "combo_ae_outputs"
