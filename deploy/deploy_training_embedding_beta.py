@@ -823,16 +823,25 @@ def run_pipeline_external_test_df(df_train_all: pd.DataFrame,
     w_row_tr, col_w = build_sample_weights_for_recon(df_train, y_train, stats_train, n_tab=len(tab_cols), j_y=j_y)
     w_row_va, _     = build_sample_weights_for_recon(df_valid, y_valid, stats_train, n_tab=len(tab_cols), j_y=j_y)
 
+    n_combos    = len(combo_map)
+    n_accounts  = int(df_train["account_id"].max()) + 1
+    n_busunits  = int(df_train["bu_id"].max()) + 1
+    n_codes     = int(df_train["code_id"].max()) + 1
+
     # 7) Model
     model = make_autoencoder(
-        n_in=Xtr.shape[1],
-        n_combos=len(combo_map),
-        embed_dim=EMBED_DIM,
-        enc_units=ENC_UNITS,
-        dec_units=DEC_UNITS,
-        lr=LR,
-        col_w=col_w
+    n_in=Xtr.shape[1],
+    n_combos=n_combos,
+    n_accounts=n_accounts,
+    n_busunits=n_busunits,
+    n_codes=n_codes,
+    embed_dim=EMBED_DIM,
+    enc_units=ENC_UNITS,
+    dec_units=DEC_UNITS,
+    lr=LR,
+    col_w=col_w
     )
+
     hist = model.fit(
         [Xtr, Ctr], Xtr,
         validation_data=([Xva, Cva], Xva, w_row_va),
