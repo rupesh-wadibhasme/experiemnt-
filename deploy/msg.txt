@@ -1,0 +1,30 @@
+InvalidArgumentError                      Traceback (most recent call last)
+Cell In[5], line 1
+----> 1 anos, meta = run_pipeline(train2,df_test)
+
+Cell In[1], line 985
+    983 if df_test is None:
+    984     return run_pipeline_internal_split_df(df_all_or_train, valid_frac=valid_frac)
+--> 985 return run_pipeline_external_test_df(df_all_or_train, df_test, valid_frac=valid_frac)
+
+Cell In[1], line 845
+    831 # 7) Model
+    832 model = make_autoencoder(
+    833 n_in=Xtr.shape[1],
+    834 n_combos=n_combos,
+   (...)    842 col_w=col_w
+    843 )
+--> 845 hist = model.fit(
+    846     [Xtr, Ctr], Xtr,
+    847     validation_data=([Xva, Cva], Xva, w_row_va),
+    848     sample_weight=w_row_tr,
+    849     epochs=EPOCHS, batch_size=BATCH_SIZE, shuffle=True,
+    850     callbacks=[
+    851         callbacks.EarlyStopping(monitor="val_loss", patience=PATIENCE, restore_best_weights=True, verbose=1),
+    852         callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=max(3, PATIENCE//3), min_lr=1e-5, verbose=1)
+...
+
+  File "c:\Users\lc5753473\OneDrive - FIS\Documents\bank_anomaly\.venv\Lib\site-packages\keras\src\backend\tensorflow\numpy.py", line 2589, in take
+
+indices[360] = 290 is not in [0, 290)
+	 [[{{node combo_autoencoder_1/acct_emb_1/GatherV2}}]] [Op:__inference_multi_step_on_iterator_8602]
