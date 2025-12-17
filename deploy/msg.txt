@@ -1,30 +1,34 @@
-InvalidArgumentError                      Traceback (most recent call last)
-Cell In[5], line 1
-----> 1 anos, meta = run_pipeline(train2,df_test)
 
-Cell In[1], line 985
-    983 if df_test is None:
-    984     return run_pipeline_internal_split_df(df_all_or_train, valid_frac=valid_frac)
---> 985 return run_pipeline_external_test_df(df_all_or_train, df_test, valid_frac=valid_frac)
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+Cell In[2], line 3
+      1 df= pd.read_csv('Data/inference_payload.csv')
+----> 3 score_bank_statement_df(
+      4         df_raw=df,
+      5         output_path="C:/Users/lc5753473/OneDrive - FIS/Documents/bank_anomaly/infer_output",
+      6         model_dir="C:/Users/lc5753473/OneDrive - FIS/Documents/bank_anomaly/combo_ae_outputs",
+      7     )
 
-Cell In[1], line 845
-    831 # 7) Model
-    832 model = make_autoencoder(
-    833 n_in=Xtr.shape[1],
-    834 n_combos=n_combos,
-   (...)    842 col_w=col_w
-    843 )
---> 845 hist = model.fit(
-    846     [Xtr, Ctr], Xtr,
-    847     validation_data=([Xva, Cva], Xva, w_row_va),
-    848     sample_weight=w_row_tr,
-    849     epochs=EPOCHS, batch_size=BATCH_SIZE, shuffle=True,
-    850     callbacks=[
-    851         callbacks.EarlyStopping(monitor="val_loss", patience=PATIENCE, restore_best_weights=True, verbose=1),
-    852         callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=max(3, PATIENCE//3), min_lr=1e-5, verbose=1)
-...
+Cell In[1], line 481
+    470 def score_bank_statement_df(
+    471     df_raw: pd.DataFrame,
+    472     model_dir: str = OUT_DIR_DEFAULT,
+   (...)    475     reason_col: str = REASON_COL_NAME,
+    476 ) -> pd.DataFrame:
+    477     """
+    478     Returns df_raw + 2 columns: Anomaly (0/1), AnomalyReason.
+    479     """
+--> 481     artifacts = load_artifacts(model_dir)
+    482     model = artifacts["model"]
+    484     expects_cat_ids = _model_expects_cat_ids(model)
 
-  File "c:\Users\lc5753473\OneDrive - FIS\Documents\bank_anomaly\.venv\Lib\site-packages\keras\src\backend\tensorflow\numpy.py", line 2589, in take
+Cell In[1], line 397
+    394 if not os.path.exists(model_path):
+    395     raise FileNotFoundError(f"Model file not found at {model_path}")
+--> 397 model = load_model(model_path, compile=False)
+    399 # Optional categorical maps
+    400 account_map_path = os.path.join(model_dir, ACCOUNT_MAP_JSON_NAME)
 
-indices[360] = 290 is not in [0, 290)
-	 [[{{node combo_autoencoder_1/acct_emb_1/GatherV2}}]] [Op:__inference_multi_step_on_iterator_8602]
+
+
+ValueError: Requested the deserialization of a `Lambda` layer whose `function` is a Python lambda. This carries a potential risk of arbitrary code execution and thus it is disallowed by default. If you trust the source of the artifact, you can override this error by passing `safe_mode=False` to the loading function, or calling `keras.config.enable_unsafe_deserialization().
