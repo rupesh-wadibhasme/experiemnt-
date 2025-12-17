@@ -143,6 +143,7 @@ def format_reason(row: pd.Series) -> str:
     acct = row.get("BankAccountCode", "-")
     bu   = row.get("BusinessUnitCode", "-")
     code = row.get("BankTransactionCode", "-")
+
     actual = row.get("amount", None)
     pred   = row.get("amount_pred", None)
     d_abs  = row.get("amount_diff_abs", None)
@@ -161,6 +162,18 @@ def format_reason(row: pd.Series) -> str:
         f"ReconError={r}, ThrRecon={thr}."
     )
 
+    # ---- NEW: count in analyst-friendly units ----
+    c_act = row.get("trans_count_day", None)
+    c_pred = row.get("trans_count_day_pred", None)
+    if c_act is not None and c_pred is not None:
+        try:
+            c_act_i = int(round(float(c_act)))
+            c_pred_i = int(round(float(c_pred)))
+            base += f" DailyTxnCount: actual={c_act_i}, expected≈{c_pred_i}."
+        except Exception:
+            base += f" DailyTxnCount: actual={c_act}, expected≈{c_pred}."
+
+    # existing extras
     extras = []
     f1 = row.get("top_feat1_name", None)
     if isinstance(f1, str) and f1 != "":
@@ -177,6 +190,7 @@ def format_reason(row: pd.Series) -> str:
         base += " Other deviating features: " + "; ".join(extras) + "."
 
     return base
+
 
 # ====== count_norm (must match training_embedding_1_4.py) ======
 
@@ -229,6 +243,32 @@ def add_count_norm(
 
     d = d.drop(columns=["_day_key_tmp"])
     return d
+    
+def invert_count_norm_to_count(
+    df: pd.DataFrame,
+    count_norm_pred: np.ndarray,
+    stats: Dict[str, Dict[str, float]],
+    count_iqr_floor: float = 0.10,
+) -> np.ndarray:
+    """
+    Invert reconstructed count_norm back to predicted count per day (actual units).
+    count_norm = (log1p(count) - med_log) / iqr_log
+    => log1p(count_pred) = count_norm_pred * iqr_log + med_log
+    => count_pred = expm1(log1p(count_pred))
+    """
+    combo_list = df["combo_str"].astype(str).values
+
+    g = stats.get("_global", {})
+    med_all = float(g.get("count_median_log", 0.0))
+    iqr_all = float(g.get("count_iqr_log", 1.0))
+
+    med = np.array([stats.get(c, {}).get("count_median_log", med_all) for c in combo_list], dtype=np.float32)
+    iqr = np.array([stats.get(c, {}).get("count_iqr_log", iqr_all) for c in combo_list], dtype=np.float32)
+    iqr = np.maximum(iqr, float(count_iqr_floor))
+
+    cnt_log_pred = count_norm_pred.reshape(-1).astype(np.float32) * iqr + med
+    cnt_pred = np.expm1(cnt_log_pred)
+    return np.clip(cnt_pred, 0.0, None)
 
 # ====== mapping helpers ======
 
@@ -486,19 +526,26 @@ def score_bank_statement_df(
     #    This requires either FE already created these OR you saved *_map.json files.
     #    If maps exist, we map from the raw categorical columns (if present).
     if expects_cat_ids:
-        # Try to map from commonly used column names in your pipeline:
-        # adjust these if your FE uses different names.
-        feats_all = _maybe_apply_cat_map(feats_all, "BankAccountCode", account_map, "account_id")
-        feats_all = _maybe_apply_cat_map(feats_all, "BusinessUnitCode", bu_map, "bu_id")
-        feats_all = _maybe_apply_cat_map(feats_all, "BankTransactionCode", code_map, "code_id")
-
-        # If maps were not present, fallback to zeros (will run but loses those signals)
-        if account_map is None and "account_id" not in feats_all.columns:
+        # Prefer FE-produced ids (best alignment). Only fallback to maps if FE did not create them.
+        if "account_id" not in feats_all.columns:
+            feats_all = _maybe_apply_cat_map(feats_all, "BankAccountCode", account_map, "account_id")
+        if "bu_id" not in feats_all.columns:
+            feats_all = _maybe_apply_cat_map(feats_all, "BusinessUnitCode", bu_map, "bu_id")
+        if "code_id" not in feats_all.columns:
+            feats_all = _maybe_apply_cat_map(feats_all, "BankTransactionCode", code_map, "code_id")
+    
+        # Final fallback (still runnable, but loses those signals)
+        if "account_id" not in feats_all.columns:
             feats_all["account_id"] = 0
-        if bu_map is None and "bu_id" not in feats_all.columns:
+        if "bu_id" not in feats_all.columns:
             feats_all["bu_id"] = 0
-        if code_map is None and "code_id" not in feats_all.columns:
+        if "code_id" not in feats_all.columns:
             feats_all["code_id"] = 0
+    
+        feats_all["account_id"] = feats_all["account_id"].astype("int32")
+        feats_all["bu_id"]      = feats_all["bu_id"].astype("int32")
+        feats_all["code_id"]    = feats_all["code_id"].astype("int32")
+
 
     # 4) Add count_norm using TRAIN stats (critical for alignment if training used it)
     if "count_norm" in tab_cols_train:
@@ -547,6 +594,18 @@ def score_bank_statement_df(
     X_pred = model.predict([X_in, X_aux], batch_size=2048, verbose=0)
     err = row_recon_error(X_in, X_pred, col_w)
 
+    # ---- NEW: predicted daily count in actual units (only if count_norm is part of training tab cols) ----
+    if "count_norm" in tab_cols_train:
+        j_cnt = col_names.index("count_norm")  # index in X_in/X_pred
+        cnt_pred_float = invert_count_norm_to_count(
+            feats_for_model,
+            X_pred[:, j_cnt],
+            stats_train,
+            count_iqr_floor=count_iqr_floor,
+        )
+        feats_for_model["trans_count_day_pred"] = np.rint(cnt_pred_float).astype(int)
+
+    
     combo_arr = feats_for_model["combo_str"].astype(str).values
     thr_vec = np.array([thr_per_combo.get(c, thr_global) for c in combo_arr], dtype=float)
     mask_recon = err >= thr_vec
