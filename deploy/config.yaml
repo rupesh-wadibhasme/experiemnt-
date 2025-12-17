@@ -1,92 +1,99 @@
-paths:
+# Central configuration for preprocessing + training + inference
+# Duplicates are stored once; config_vars.py will create aliases (e.g., OUT_DIR_DEFAULT, *_NAME).
+
+preprocessing:
   art_dir: artifacts_simple
+
+  files:
+    combo_mapping_json: combo_mapping.json
+    schema_json: schema.json
+    account_map_json: account_mapping.json
+    busunit_map_json: businessunit_mapping.json
+    code_map_json: code_mapping.json
+
+  oov_token: "__OOV__"
+
+  columns:
+    date_col_value: ValueDateKey
+    date_col_post: PostingDateKey
+    amount_col: AmountInBankAccountCurrency
+    account_col: BankAccountCode
+    code_col: BankTransactionCode
+    busunit_col: BusinessUnitCode
+    flag_cashbook: CashBookFlag
+    txn_id_col: BankTransactionId
+
+    required_cols:
+      - ValueDateKey
+      - PostingDateKey
+      - AmountInBankAccountCurrency
+      - BankAccountCode
+      - BankTransactionCode
+      - BusinessUnitCode
+      - CashBookFlag
+
+  numerics:
+    eps_mean: 1.0e-6
+
+training:
   out_dir: combo_ae_outputs
 
-artifacts_simple_files:
-  combo_mapping_json: combo_mapping.json
-  schema_json: schema.json
-  account_mapping_json: account_mapping.json
-  businessunit_mapping_json: businessunit_mapping.json
-  code_mapping_json: code_mapping.json
+  artifacts:
+    output_csv: anomalies_combo_ae_2024_109.csv
+    learning_curve_png: learning_curve.png
+    meta_json: meta.json
+    model_path: combo_autoencoder.keras
+    combo_map_json: combo_map.json
+    combo_stats_json: combo_stats.json
+    thresholds_json: combo_threshold.json
 
-oov:
-  token: "__OOV__"   # used for categorical ids + combo OOV tag
+  split:
+    valid_frac_in_train: 0.10
 
-columns:
-  date_col_value: ValueDateKey
-  date_col_post: PostingDateKey
-  amount_col: AmountInBankAccountCurrency
-  account_col: BankAccountCode
-  code_col: BankTransactionCode
-  busunit_col: BusinessUnitCode
-  flag_cashbook: CashBookFlag
-  txn_id_col: BankTransactionId
-  required_cols:
-    - ValueDateKey
-    - PostingDateKey
-    - AmountInBankAccountCurrency
-    - BankAccountCode
-    - BankTransactionCode
-    - BusinessUnitCode
-    - CashBookFlag
+  model:
+    embed_dim: 16
+    enc_units: [128, 64]
+    dec_units: [64, 128]
+    lr: 0.0005
+    batch_size: 512
+    epochs: 200
+    patience: 10
 
-numerics:
-  eps_mean: 1.0e-6
+  loss_weights:
+    weight_ynorm: 5.0
+    weight_tabular: 1.0
 
-training_artifacts:
-  output_csv: anomalies_combo_ae_2024_109.csv
-  learning_curve_png: learning_curve.png
-  meta_json: meta.json
-  model_path: combo_autoencoder.keras
-  combo_map_json: combo_map.json
-  combo_stats_json: combo_stats.json
-  thresholds_json: combo_threshold.json
+  thresholding:
+    threshold_percentile: 99.0
+    min_samples_per_combo_thr: 20
 
-split:
-  valid_frac_in_train: 0.10
+  tolerance:
+    abs_tol_inr: 1.0
+    pct_tol: 0.05
+    mad_mult: 0.8
 
-model:
-  embed_dim: 16
-  enc_units: [128, 64]
-  dec_units: [64, 128]
-  lr: 0.0005
-  batch_size: 512
-  epochs: 200
-  patience: 10
+  reproducibility:
+    global_seed: 42
 
-loss_weights:
-  weight_ynorm: 5.0
-  weight_tabular: 1.0
+  count_normalization:
+    count_iqr_floor: 0.10
+    count_norm_clip_lo: -10.0
+    count_norm_clip_hi: 10.0
+    count_day_col: ValueDateKey
 
-thresholding:
-  threshold_percentile: 99.0
-  min_samples_per_combo_thr: 20
-
-tolerance:
-  abs_tol_inr: 1.0
-  pct_tol: 0.05
-  mad_mult: 0.8
-
-reproducibility:
-  global_seed: 42
-
-count_normalization:
-  count_iqr_floor: 0.10
-  count_norm_clip_lo: -10.0
-  count_norm_clip_hi: 10.0
-  count_day_col: ValueDateKey
-
-features:
-  ignore_for_recon:
-    - posting_lag_days
-    - cashbook_flag_derived
-    - quarter
+  features:
+    ignore_for_recon:
+      - posting_lag_days
+      - cashbook_flag_derived
+      - quarter
 
 inference:
-  anomaly_col_name: Anomaly
-  reason_col_name: AnomalyReason
+  # Only unique inference-only items stored here; duplicates become aliases in config_vars.py
+  columns:
+    anomaly_col_name: Anomaly
+    reason_col_name: AnomalyReason
 
-  # optional maps only if saved
-  account_map_json_name: account_map.json
-  bu_map_json_name: bu_map.json
-  code_map_json_name: code_map.json
+  optional_map_names:
+    account_map_json_name: account_map.json
+    bu_map_json_name: bu_map.json
+    code_map_json_name: code_map.json
