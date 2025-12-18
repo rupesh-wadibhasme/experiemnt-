@@ -1,0 +1,12 @@
+INVALID_PARAMETER_VALUE: Bad model name: please specify all three levels of the model in the form `catalog_name.schema_name.model_name`. If you are trying to use the legacy Workspace Model Registry, instead of the recommended Unity Catalog Model Registry, set the Model Registry URI to 'databricks' (legacy) instead of 'databricks-uc' (recommended).
+File /local_disk0/.ephemeral_nfs/envs/pythonEnv-d0972e00-bd1b-477f-a01b-eaea468fccd2/lib/python3.11/site-packages/mlflow/store/_unity_catalog/registry/rest_store.py:461, in UcModelRegistryStore.create_registered_model(self, name, tags, description, deployment_job_id)
+    460 try:
+--> 461     response_proto = self._call_endpoint(CreateRegisteredModelRequest, req_body)
+    462 except RestException as e:
+File /local_disk0/.ephemeral_nfs/envs/pythonEnv-d0972e00-bd1b-477f-a01b-eaea468fccd2/lib/python3.11/site-packages/mlflow/store/_unity_catalog/registry/rest_store.py:466, in UcModelRegistryStore.create_registered_model.<locals>.reraise_with_legacy_hint(exception, legacy_hint)
+    464 def reraise_with_legacy_hint(exception, legacy_hint):
+    465     new_message = exception.message.rstrip(".") + f". {legacy_hint}"
+--> 466     raise MlflowException(
+    467         message=new_message,
+    468         error_code=exception.error_code,
+    469     )
