@@ -1,23 +1,13 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple, Any, Optional
 
 import numpy as np
 import pandas as pd
+from tensorflow.keras.models import load_model
 
-# Assume these exist from your imports:
-# - load_artifacts  (move to utils.py)
-# - _model_expects_cat_ids
-# - build_dataset_from_excel
-# - apply_combo_map
-# - _maybe_apply_cat_map
-# - add_count_norm
-# - normalize_amount
-# - build_inputs_with_ynorm  (or keep staticmethod below)
-# - build_col_weights
-# - row_recon_error
-# - invert_count_norm_to_count
-# - invert_pred_to_inr
-# - compute_top_feature_deviations
-# - format_reason
+# === bring FE (must exist and match training) ===
+from preprocessing_and_fe import build_dataset_from_excel
+from infer_utils import *
+from config import *
 
 
 class BankAnomalyDetectorWrapper:
@@ -212,3 +202,4 @@ class BankAnomalyDetectorWrapper:
             df_out.to_csv(output_path, index=False)
 
         return df_out
+
