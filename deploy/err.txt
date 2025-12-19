@@ -2,6 +2,13 @@ CVE: CVE-2025-55556
 Description: TensorFlow was discovered to output random results when compiling Embedding, leadin
 g to unexpected behavior in the application.
 
+CVE: CVE-2024-1560
+Description: A path traversal vulnerability exists in the mlflow, specifically within the artifact deletion f
+unctionality. Attackers can bypass path validation by exploiting the double decoding process in the '_
+delete_artifact_mlflow_artifacts' handler and 'local_file_uri_to_path' function, allowing for the deletion
+of arbitrary directories on the server's filesystem. This vulnerability is due to an extra unquote operati
+on in the 'delete_artifacts' function of 'local_artifact_repo.py', which fails to properly sanitize user-sup
+plied paths. The issue affects mlflow, despite attempts to fix a similar issue in CVE-2023-6831.
 
 
 INVALID_PARAMETER_VALUE: Bad model name: please specify all three levels of the model in the form `catalog_name.schema_name.model_name`. If you are trying to use the legacy Workspace Model Registry, instead of the recommended Unity Catalog Model Registry, set the Model Registry URI to 'databricks' (legacy) instead of 'databricks-uc' (recommended).
