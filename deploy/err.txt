@@ -1,3 +1,9 @@
+CVE: CVE-2025-55556
+Description: TensorFlow was discovered to output random results when compiling Embedding, leadin
+g to unexpected behavior in the application.
+
+
+
 INVALID_PARAMETER_VALUE: Bad model name: please specify all three levels of the model in the form `catalog_name.schema_name.model_name`. If you are trying to use the legacy Workspace Model Registry, instead of the recommended Unity Catalog Model Registry, set the Model Registry URI to 'databricks' (legacy) instead of 'databricks-uc' (recommended).
 File /local_disk0/.ephemeral_nfs/envs/pythonEnv-d0972e00-bd1b-477f-a01b-eaea468fccd2/lib/python3.11/site-packages/mlflow/store/_unity_catalog/registry/rest_store.py:461, in UcModelRegistryStore.create_registered_model(self, name, tags, description, deployment_job_id)
     460 try:
