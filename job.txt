@@ -1,0 +1,81 @@
+
+import pandas as pd
+from pyspark.sql.functions import col, to_timestamp, element_at #, split, max
+import datetime
+from delta.tables import DeltaTable
+
+
+# COMMAND ----------
+
+source_dir = "/Volumes/aimluat/treasury_anomaly_fx_detection/archive"
+status_table_name = "aimluat.treasury_anomaly_fx_detection.status_table"
+
+# COMMAND ----------
+
+# Read the metadata of all files recursively
+# The 'path' and 'modificationTime' are automatically included in the schema.
+all_folders = dbutils.fs.ls(source_dir)
+
+# Create a list of dictionaries with folder name and the latest file modification time
+folder_status_list = []
+for folder in all_folders:
+    # Check if the path is a directory
+    if folder.isDir():
+        # List files within the folder
+        files = dbutils.fs.ls(folder.path)
+        if files:
+            # Find the maximum modification time among all files in the folder
+            latest_mod_time = max([f.modificationTime for f in files])
+            folder_status_list.append({
+                "client_name": folder.name.replace("/", ""), # Clean up the folder name
+                "last_update_time": datetime.datetime.fromtimestamp(latest_mod_time / 1000)
+            })
+
+# Create a pandas DataFrame from the list
+current_status_df = pd.DataFrame(folder_status_list)
+
+# Now convert the pandas DataFrame to a Spark DataFrame
+current_status_spark_df = spark.createDataFrame(current_status_df)
+
+
+# COMMAND ----------
+
+# Read the existing state table
+processed_folders_df = spark.read.table(status_table_name)
+
+# COMMAND ----------
+
+# Find new or updated folders
+# The left_anti join finds new folders.
+new_folders_df = current_status_spark_df.alias("current") \
+    .join(processed_folders_df.alias("processed"), on="client_name", how="left_anti") \
+    .select(col("current.client_name"), col("current.last_update_time"))
+
+# The inner join finds updated folders.
+updated_folders_df = current_status_spark_df.alias("current") \
+    .join(processed_folders_df.alias("processed"), on="client_name") \
+    .where(col("current.last_update_time") > col("processed.last_processed_time")) \
+    .select(col("current.client_name"), col("current.last_update_time"))
+
+# COMMAND ----------
+
+# Combine the two DataFrames using unionByName
+folders_to_process_df = new_folders_df.unionByName(updated_folders_df)
+
+# COMMAND ----------
+
+import json
+if folders_to_process_df.count() > 0:
+    # folder_names = [row.client_name for row in folders_to_process_df.collect()]
+    folder_names = [
+        {"client_name": row.client_name, "last_update_time": row.last_update_time.isoformat()}
+        for row in folders_to_process_df.collect()
+    ]
+    print(folder_names)
+    print(f"Found {len(folder_names)} folders to process.")
+    # Exit the notebook with the list of folder names as a JSON string
+    dbutils.jobs.taskValues.set(key='output', value=folder_names)
+
+else:
+    # Exit with an empty JSON list
+    dbutils.jobs.taskValues.set(key='output', value=[])
