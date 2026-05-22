@@ -22,6 +22,10 @@ class ValidatorConfig:
         Maximum allowed $expand nesting depth (default: 3).
     max_filter_complexity : int
         Maximum allowed filter expression complexity score (default: 100).
+    max_cost_score : int
+        Query is invalid if estimated cost exceeds this value (default: 80).
+    warn_cost_threshold : int
+        Issue warning if estimated cost exceeds this value (default: 60).
     allow_batch : bool
         Whether $batch operations are allowed (default: False).
     require_top_limit : bool
@@ -38,6 +42,10 @@ class ValidatorConfig:
     max_expand_depth: int = 3
     max_filter_complexity: int = 100
 
+    # Cost score limits
+    max_cost_score: int = 80
+    warn_cost_threshold: int = 60
+
     # Feature flags
     allow_batch: bool = False
     require_top_limit: bool = True
@@ -51,6 +59,8 @@ class ValidatorConfig:
             warn_retrieval_threshold=250,
             max_expand_depth=2,
             max_filter_complexity=50,
+            max_cost_score=80,
+            warn_cost_threshold=60,
             require_top_limit=True,
             allow_batch=False,
         )

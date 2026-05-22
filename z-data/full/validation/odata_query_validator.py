@@ -149,9 +149,34 @@ class ODataQueryValidator:
     def _validate_syntax(self, query: str, parsed_query: Dict[str, str]) -> List[ValidationIssue]:
         """Validate basic OData syntax."""
         issues = []
-        
+
+        # Check basic query structure — must start with a valid entity set name (letter or
+        # underscore) or a $ parameter. Anything else (dashes, digits, spaces, etc.) is not
+        # a recognisable OData query and would fail at the API anyway.
+        entity_part = query.strip().split("?")[0] if "?" in query else query.strip()
+        if not re.match(r'^[A-Za-z_$]', entity_part):
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.CRITICAL,
+                category="syntax",
+                message="Query does not begin with a valid entity set name or OData parameter",
+                query_segment=entity_part[:50],
+                suggestion="OData queries must start with an entity set name (e.g. Users?$top=10) or a $ parameter"
+            ))
+            return issues  # No point checking further — the query is structurally unrecognisable
+
+        # Entity set name must not contain whitespace
+        if "?" not in query and not query.strip().startswith("$") and re.search(r'\s', entity_part):
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.CRITICAL,
+                category="syntax",
+                message="Entity set name contains whitespace",
+                query_segment=entity_part,
+                suggestion="Entity set names cannot contain spaces — check the generated query"
+            ))
+            return issues
+
         # Check for common syntax errors
-        
+
         # Unmatched parentheses in filter
         if "$filter" in parsed_query:
             filter_expr = parsed_query["$filter"]
@@ -173,7 +198,7 @@ class ODataQueryValidator:
         for param in parsed_query.keys():
             if param.startswith("$") and param not in valid_params:
                 issues.append(ValidationIssue(
-                    severity=ValidationSeverity.WARNING,
+                    severity=ValidationSeverity.CRITICAL,
                     category="syntax",
                     message=f"Unknown OData system query option: {param}",
                     query_segment=param,
@@ -412,21 +437,21 @@ class ODataQueryValidator:
         return min(100.0, cost)
     
     def _validate_cost(self, cost_score: float) -> List[ValidationIssue]:
-        """Block queries above 80; warn between 60 and 80."""
+        """Block queries above max_cost_score; warn above warn_cost_threshold."""
         issues = []
 
-        if cost_score > 80:
+        if cost_score > self.config.max_cost_score:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.CRITICAL,
                 category="cost",
-                message=f"Query cost score {cost_score:.1f}/100 exceeds maximum allowed (80)",
+                message=f"Query cost score {cost_score:.1f}/100 exceeds maximum allowed ({self.config.max_cost_score})",
                 suggestion="Consider adding filters, reducing $top, or limiting $expand depth"
             ))
-        elif cost_score > 60:
+        elif cost_score > self.config.warn_cost_threshold:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.WARNING,
                 category="cost",
-                message=f"Query has moderate cost: {cost_score:.1f}/100 (limit: 80)",
+                message=f"Query has moderate cost: {cost_score:.1f}/100 (limit: {self.config.max_cost_score})",
                 suggestion="Monitor performance and consider optimizations if slow"
             ))
 
