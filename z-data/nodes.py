@@ -157,12 +157,11 @@ class TextToODataNodes:
         Validate the generated OData query syntactically and semantically
         against the fetched entity schemas.
 
-        Reads  : state["odata_query"], state["entity_schemas"]
+        Reads  : state["odata_query"]
         Writes : state["is_query_valid"], state["query_attempts"] (last entry)
         """
         # -> New (entire method body below)
         odata_query = state.get("odata_query")
-        entity_schemas = state.get("entity_schemas", {})
 
         if not odata_query:
             LOGGER.error("No OData query to validate")
@@ -182,11 +181,7 @@ class TextToODataNodes:
             }
 
         try:
-            validation_result = self._validator.validate(
-                query=odata_query,
-                entity_schemas=entity_schemas,
-                http_method="GET",
-            )
+            validation_result = self._validator.validate(query=odata_query)
 
             LOGGER.info("Validation complete: is_valid=%s", validation_result.is_valid)
             for issue in validation_result.issues:
@@ -248,7 +243,45 @@ class TextToODataNodes:
                  state["entity_schemas"], state["user_question"]
         Writes : state["odata_query"], state["retry_count"], state["query_attempts"]
         """
-        raise NotImplementedError
+        odata_query = state.get("odata_query", "")
+        user_question = state.get("user_question", "")
+        entity_schemas = state.get("entity_schemas", {})
+        query_attempts = state.get("query_attempts", [])
+        retry_count = state.get("retry_count", 0)
+
+        validation_error = ""
+        if query_attempts:
+            validation_error = query_attempts[-1].get("validation_error") or ""
+
+        try:
+            chain = QUERY_FIX_PROMPT | self._llm
+            response = await chain.ainvoke({
+                "validation_error": validation_error,
+                "entity_schemas_json": json.dumps(entity_schemas, indent=2),
+                "odata_query": odata_query,
+                "user_question": user_question,
+            })
+
+            fixed_query = response.content.strip()
+            new_retry_count = retry_count + 1
+
+            LOGGER.info("fix_query attempt %d: %s", new_retry_count, fixed_query)
+
+            return {
+                "odata_query": fixed_query,
+                "retry_count": new_retry_count,
+                "query_attempts": query_attempts + [{
+                    "query": fixed_query,
+                    "validation_error": None,
+                    "attempt_number": new_retry_count + 1,
+                }],
+            }
+
+        except Exception as e:
+            LOGGER.exception("Unexpected error during query fix: %s", e)
+            return {
+                "error": f"Query fix failed: {str(e)}",
+            }
 
     # ââ Node 8: execute_query âââââââââââââââââââââââââââââââââââââââââââââââââ
 
