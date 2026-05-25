@@ -6,7 +6,6 @@ Provides comprehensive validation for OData queries including:
 - Safety checks (prevent mutations)
 - Cost estimation
 - Limit enforcement
-- Schema validation
 - Security vulnerability detection
 """
 
@@ -14,8 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Set
-from urllib.parse import parse_qs, urlparse
+from typing import Dict, List, Optional
 
 from .validation_result import ValidationIssue, ValidationResult, ValidationSeverity
 from .validator_config import ValidatorConfig
@@ -28,25 +26,13 @@ class ODataQueryValidator:
     Stateless validator for OData queries.
     
     Validates queries against configurable rules and returns structured results.
-    All methods are stateless to enable easy testing and concurrent usage.
+    All methods are stateless.
     
     Parameters
     ----------
     config : ValidatorConfig, optional
         Validation configuration. If not provided, uses default settings.
     
-    Examples
-    --------
-    >>> validator = ODataQueryValidator()
-    >>> result = validator.validate("EntitySet?$top=10&$select=Name")
-    >>> result.is_valid
-    True
-    
-    >>> bad_query = "EntitySet?$top=10000"
-    >>> result = validator.validate(bad_query)
-    >>> result.is_valid
-    False
-    >>> print(result.get_error_message())
     """
     
     def __init__(self, config: Optional[ValidatorConfig] = None):
@@ -56,26 +42,16 @@ class ODataQueryValidator:
         # Compile regex patterns once for performance
         self._unsafe_patterns = self._compile_unsafe_patterns()
     
-    def validate(
-        self,
-        query: str,
-        entity_schemas: Optional[Dict[str, Any]] = None,
-        http_method: str = "GET",
-    ) -> ValidationResult:
+    def validate(self, query: str) -> ValidationResult:
         """
         Validate an OData query comprehensively.
-        
+
         Parameters
         ----------
         query : str
             The OData query string to validate (may include entity set name).
             Examples: "Users?$top=10" or "$top=10&$filter=Age gt 18"
-        entity_schemas : Dict[str, Any], optional
-            Entity schema metadata from $metadata endpoint.
-            Used for strict schema validation if provided.
-        http_method : str, default "GET"
-            HTTP method for the request (default: GET).
-        
+
         Returns
         -------
         ValidationResult
@@ -102,16 +78,11 @@ class ODataQueryValidator:
         parsed_query = self._parse_query(query)
         
         # Run all validation checks
-        issues.extend(self._validate_http_method(http_method))
         issues.extend(self._validate_syntax(query, parsed_query))
         issues.extend(self._validate_safety(query, parsed_query))
         issues.extend(self._validate_retrieval_limits(parsed_query))
         issues.extend(self._validate_expand_depth(parsed_query))
         issues.extend(self._validate_filter_complexity(parsed_query))
-        
-        # Schema validation (if schemas provided)
-        if entity_schemas and self.config.strict_schema_validation:
-            issues.extend(self._validate_schema(parsed_query, entity_schemas))
         
         # Cost estimation
         cost_score = None
@@ -140,8 +111,6 @@ class ODataQueryValidator:
             estimated_cost_score=cost_score,
             estimated_row_count=row_count,
             validation_metadata={
-                "http_method": http_method,
-                "has_schema": entity_schemas is not None,
                 "parsed_params": list(parsed_query.keys()),
             }
         )
@@ -177,38 +146,37 @@ class ODataQueryValidator:
         
         return parsed
     
-    def _validate_http_method(self, http_method: str) -> List[ValidationIssue]:
-        """Validate that the HTTP method is allowed."""
-        issues = []
-        
-        method_upper = http_method.upper()
-        
-        # Check if method is in blocked operations
-        if method_upper in self.config.blocked_operations:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.CRITICAL,
-                category="safety",
-                message=f"HTTP method '{method_upper}' is blocked - only read operations allowed",
-                suggestion="Use GET for read-only queries"
-            ))
-        
-        # Check if method is in allowed list
-        elif method_upper not in self.config.allowed_http_methods:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.CRITICAL,
-                category="safety",
-                message=f"HTTP method '{method_upper}' is not in allowed methods: {self.config.allowed_http_methods}",
-                suggestion=f"Use one of: {', '.join(self.config.allowed_http_methods)}"
-            ))
-        
-        return issues
-    
     def _validate_syntax(self, query: str, parsed_query: Dict[str, str]) -> List[ValidationIssue]:
         """Validate basic OData syntax."""
         issues = []
-        
+
+        # Check basic query structure — must start with a valid entity set name (letter or
+        # underscore) or a $ parameter. Anything else (dashes, digits, spaces, etc.) is not
+        # a recognisable OData query and would fail at the API anyway.
+        entity_part = query.strip().split("?")[0] if "?" in query else query.strip()
+        if not re.match(r'^[A-Za-z_$]', entity_part):
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.CRITICAL,
+                category="syntax",
+                message="Query does not begin with a valid entity set name or OData parameter",
+                query_segment=entity_part[:50],
+                suggestion="OData queries must start with an entity set name (e.g. Users?$top=10) or a $ parameter"
+            ))
+            return issues  # No point checking further — the query is structurally unrecognisable
+
+        # Entity set name must not contain whitespace
+        if "?" not in query and not query.strip().startswith("$") and re.search(r'\s', entity_part):
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.CRITICAL,
+                category="syntax",
+                message="Entity set name contains whitespace",
+                query_segment=entity_part,
+                suggestion="Entity set names cannot contain spaces — check the generated query"
+            ))
+            return issues
+
         # Check for common syntax errors
-        
+
         # Unmatched parentheses in filter
         if "$filter" in parsed_query:
             filter_expr = parsed_query["$filter"]
@@ -230,7 +198,7 @@ class ODataQueryValidator:
         for param in parsed_query.keys():
             if param.startswith("$") and param not in valid_params:
                 issues.append(ValidationIssue(
-                    severity=ValidationSeverity.WARNING,
+                    severity=ValidationSeverity.CRITICAL,
                     category="syntax",
                     message=f"Unknown OData system query option: {param}",
                     query_segment=param,
@@ -415,32 +383,6 @@ class ODataQueryValidator:
         
         return issues
     
-    def _validate_schema(
-        self,
-        parsed_query: Dict[str, str],
-        entity_schemas: Dict[str, Any]
-    ) -> List[ValidationIssue]:
-        """
-        Validate query against entity schemas.
-        
-        Checks that referenced properties exist in the schema.
-        """
-        issues = []
-        
-        # This is a simplified schema validation
-        # In production, you'd parse the full schema and validate property names
-        
-        if not entity_schemas:
-            return issues
-        
-        # Example: validate $select properties exist
-        if "$select" in parsed_query:
-            # Would need actual schema structure to validate
-            # This is a placeholder for demonstration
-            pass
-        
-        return issues
-    
     def _estimate_cost(self, parsed_query: Dict[str, str]) -> float:
         """
         Estimate query execution cost on a 0-100 scale.
@@ -495,24 +437,24 @@ class ODataQueryValidator:
         return min(100.0, cost)
     
     def _validate_cost(self, cost_score: float) -> List[ValidationIssue]:
-        """Generate warnings based on cost estimation."""
+        """Block queries above max_cost_score; warn above warn_cost_threshold."""
         issues = []
-        
-        if cost_score > 80:
+
+        if cost_score > self.config.max_cost_score:
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.CRITICAL,
+                category="cost",
+                message=f"Query cost score {cost_score:.1f}/100 exceeds maximum allowed ({self.config.max_cost_score})",
+                suggestion="Consider adding filters, reducing $top, or limiting $expand depth"
+            ))
+        elif cost_score > self.config.warn_cost_threshold:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.WARNING,
                 category="cost",
-                message=f"Query has high estimated cost: {cost_score:.1f}/100",
-                suggestion="Consider adding filters, reducing $top, or limiting $expand depth"
-            ))
-        elif cost_score > 60:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.INFO,
-                category="cost",
-                message=f"Query has moderate cost: {cost_score:.1f}/100",
+                message=f"Query has moderate cost: {cost_score:.1f}/100 (limit: {self.config.max_cost_score})",
                 suggestion="Monitor performance and consider optimizations if slow"
             ))
-        
+
         return issues
     
     def _calculate_expand_depth(self, expand_expr: str) -> int:
