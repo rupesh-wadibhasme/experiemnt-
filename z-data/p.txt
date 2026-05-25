@@ -1,0 +1,121 @@
+"""
+Prompt templates for the Text-to-OData LangGraph agent.
+
+All prompt text is defined in ``prompts/prompts_registry.yaml``.  Each entry
+in the registry has the shape:
+
+    <prompt_key>:
+      version:     "1.0"
+      description: "..."
+      tags:        [tag1, tag2]
+      template:    |
+        Raw prompt text with {variable} placeholders.
+
+This module reads the registry at import time, exposes a ``PromptRegistry``
+for introspection (version, description, tags), and builds the five
+``ChatPromptTemplate`` objects consumed by the agent nodes.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List
+
+import yaml
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
+)
+
+# ── Registry loading ──────────────────────────────────────────────────────────
+
+_REGISTRY_PATH = Path(__file__).parent / "prompts" / "prompts_registry.yaml"
+
+
+@dataclass
+class PromptEntry:
+    """Metadata + template for a single prompt."""
+
+    key: str
+    version: str
+    description: str
+    tags: List[str]
+    template: str
+
+
+class PromptRegistry:
+    """
+    Loads and indexes all prompts from ``prompts_registry.yaml``.
+
+    Usage
+    -----
+    .. code-block:: python
+
+        registry = PromptRegistry()
+        entry = registry.get("intent_system")
+        print(entry.version, entry.description)
+    """
+
+    def __init__(self, registry_path: Path = _REGISTRY_PATH) -> None:
+        raw: Dict[str, Any] = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
+        self._entries: Dict[str, PromptEntry] = {
+            key: PromptEntry(
+                key=key,
+                version=data["version"],
+                description=data["description"],
+                tags=data.get("tags", []),
+                template=data["template"],
+            )
+            for key, data in raw.items()
+        }
+
+    def get(self, key: str) -> PromptEntry:
+        """Return a ``PromptEntry`` by key; raises ``KeyError`` if not found."""
+        return self._entries[key]
+
+    def template(self, key: str) -> str:
+        """Shortcut: return just the template string for *key*."""
+        return self._entries[key].template
+
+    def all_entries(self) -> List[PromptEntry]:
+        """Return all registered prompt entries."""
+        return list(self._entries.values())
+
+
+# Module-level singleton — shared across all imports
+registry = PromptRegistry()
+
+
+# ── ChatPromptTemplate helpers ────────────────────────────────────────────────
+
+
+def _make_prompt(system_key: str, human_key: str) -> ChatPromptTemplate:
+    """Build a two-message ``ChatPromptTemplate`` from two registry keys."""
+    return ChatPromptTemplate.from_messages(
+        [
+            SystemMessagePromptTemplate.from_template(registry.template(system_key)),
+            HumanMessagePromptTemplate.from_template(registry.template(human_key)),
+        ]
+    )
+
+
+# ── 1. Intent classification ──────────────────────────────────────────────────
+INTENT_PROMPT = _make_prompt("intent_system", "intent_human")
+
+# ── 2. Entity selection ───────────────────────────────────────────────────────
+ENTITY_SELECTION_PROMPT = _make_prompt(
+    "entity_selection_system", "entity_selection_human"
+)
+
+# ── 3. OData query generation ─────────────────────────────────────────────────
+QUERY_GENERATION_PROMPT = _make_prompt(
+    "query_generation_system", "query_generation_human"
+)
+
+# ── 4. Query fix (retry loop) ─────────────────────────────────────────────────
+QUERY_FIX_PROMPT = _make_prompt("query_fix_system", "query_fix_human")
+
+# ── 5. Response formatting ────────────────────────────────────────────────────
+RESPONSE_FORMAT_PROMPT = _make_prompt("response_format_system", "response_format_human")
