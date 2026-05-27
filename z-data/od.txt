@@ -1,0 +1,2893 @@
+This XML file does not appear to have any style information associated with it. The document tree is shown below.
+<edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.0">
+<edmx:DataServices>
+<Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="FIS.Integrity.OData">
+<EntityType Name="Entity0001">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityType" Type="Edm.String" Nullable="false"/>
+<Property Name="EntitySubType" Type="Edm.String"/>
+<Property Name="Department" Type="Edm.String"/>
+<Property Name="SubDepartment" Type="Edm.String"/>
+<Property Name="StreetName" Type="Edm.String"/>
+<Property Name="BuildingNumber" Type="Edm.String"/>
+<Property Name="PostCode" Type="Edm.String"/>
+<Property Name="TownName" Type="Edm.String"/>
+<Property Name="CountrySubDivision" Type="Edm.String"/>
+<Property Name="CountryCode" Type="Edm.String"/>
+<Property Name="AddressLine1" Type="Edm.String"/>
+<Property Name="AddressLine2" Type="Edm.String"/>
+<Property Name="AddressLine3" Type="Edm.String"/>
+<Property Name="AddressLine4" Type="Edm.String"/>
+<Property Name="AddressLine5" Type="Edm.String"/>
+<Property Name="AddressLine6" Type="Edm.String"/>
+<Property Name="AddressLine7" Type="Edm.String"/>
+<Property Name="Address" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0002">
+<Key>
+<PropertyRef Name="AttributeRef"/>
+</Key>
+<Property Name="AttributeRef" Type="Edm.Int32" Nullable="false"/>
+<Property Name="AttributeName" Type="Edm.String" Nullable="false"/>
+<Property Name="AttributeType" Type="Edm.String" Nullable="false"/>
+<Property Name="AttributeArray" Type="Edm.Int16" Nullable="false"/>
+<Property Name="MNA" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Mandatory" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ArraySize" Type="Edm.Int16"/>
+<Property Name="PredefinedList" Type="Edm.String"/>
+<Property Name="DefaultValue" Type="Edm.String" Nullable="false"/>
+<Property Name="TextLength" Type="Edm.Int16"/>
+<Property Name="Deactivated" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="DisplayOrder" Type="Edm.Int32" Nullable="false"/>
+</EntityType>
+<EntityType Name="Entity0003">
+<Key>
+<PropertyRef Name="BankAccnt"/>
+<PropertyRef Name="CashPool"/>
+</Key>
+<Property Name="CashPool" Type="Edm.String" Nullable="false"/>
+<Property Name="BankAccnt" Type="Edm.String" Nullable="false"/>
+<Property Name="BankInitiated" Type="Edm.Int16" Nullable="false"/>
+<Property Name="FundingBankAccnt" Type="Edm.String"/>
+<Property Name="SweepBankAccnt" Type="Edm.String"/>
+<Property Name="LoanFlag" Type="Edm.Int16"/>
+<Property Name="FundingTranType" Type="Edm.String"/>
+<Property Name="FundingSettleMethod" Type="Edm.String"/>
+<Property Name="FundingLineNumber" Type="Edm.String"/>
+<Property Name="SweepTranType" Type="Edm.String"/>
+<Property Name="SweepSettleMethod" Type="Edm.String"/>
+<Property Name="SweepLineNumber" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="Entity0062" Type="FIS.Integrity.OData.Entity0062"/>
+</EntityType>
+<EntityType Name="Entity0057">
+<Key>
+<PropertyRef Name="OurBank"/>
+</Key>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="Descr" Type="Edm.String" Nullable="false"/>
+<Property Name="OwningBUnit" Type="Edm.String"/>
+<Property Name="AccountNo" Type="Edm.String"/>
+<Property Name="IBAN" Type="Edm.String"/>
+<Property Name="ChipsUID" Type="Edm.String"/>
+<Property Name="EFTAlias" Type="Edm.String"/>
+<Property Name="ClearingMethod" Type="Edm.String"/>
+<Property Name="BSBNo" Type="Edm.String"/>
+<Property Name="Fedwire" Type="Edm.String"/>
+<Property Name="ABANo" Type="Edm.String"/>
+<Property Name="BenName1" Type="Edm.String"/>
+<Property Name="BenName2" Type="Edm.String"/>
+<Property Name="BenName3" Type="Edm.String"/>
+<Property Name="BenName4" Type="Edm.String"/>
+<Property Name="BenBank1" Type="Edm.String"/>
+<Property Name="BenBank2" Type="Edm.String"/>
+<Property Name="BenBank3" Type="Edm.String"/>
+<Property Name="BenBank4" Type="Edm.String"/>
+<Property Name="CorBank1" Type="Edm.String"/>
+<Property Name="CorBank2" Type="Edm.String"/>
+<Property Name="CorBank3" Type="Edm.String"/>
+<Property Name="CorBank4" Type="Edm.String"/>
+<Property Name="CorBankEFTAlias" Type="Edm.String"/>
+<Property Name="CorBankEFTCode" Type="Edm.String"/>
+<Property Name="CorBankABANo" Type="Edm.String"/>
+<Property Name="CashPool" Type="Edm.String"/>
+<Property Name="TranType" Type="Edm.String"/>
+<Property Name="MinBalance" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="MaxBalance" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="TargetBalance" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="OverDraftLimit" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="BankCodeAlias" Type="Edm.String"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="CashBank" Type="Edm.String" Nullable="false"/>
+<Property Name="ClearedFunds" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Day1Float" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Day2Float" Type="Edm.Int16" Nullable="false"/>
+<Property Name="OffsetCashDate" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Comment1" Type="Edm.String"/>
+<Property Name="Comment2" Type="Edm.String"/>
+<Property Name="Comment3" Type="Edm.String"/>
+<Property Name="Comment4" Type="Edm.String"/>
+<Property Name="ReqReconciliationFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AllowReconICRenegFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="RecTolerancePercent" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="RecToleranceAmount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="ChequeName" Type="Edm.String"/>
+<Property Name="TTName" Type="Edm.String"/>
+<Property Name="GLRequiredFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="DiscrepancyGLReqFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="GLDiscrepancyAlias" Type="Edm.String"/>
+<Property Name="IsActive" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="UsedForCashForecast" Type="Edm.Int16"/>
+<Property Name="AutoFundLimit" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="AutoFundAmtRounding" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="PrimaryBankAccount" Type="Edm.Int16"/>
+<Property Name="ValidateStatements" Type="Edm.Int16"/>
+<Property Name="ValidateBalances" Type="Edm.Int16"/>
+<Property Name="StatementNo" Type="Edm.Int32"/>
+<Property Name="ClosingBalance" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="SortCode" Type="Edm.String"/>
+<Property Name="Branch" Type="Edm.String"/>
+<Property Name="RoutingMethodID" Type="Edm.Int16"/>
+<Property Name="LogicalAcctFlag" Type="Edm.Int16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="BankBranchID" Type="Edm.Int32"/>
+<Property Name="DebitBankInstructions" Type="Edm.String"/>
+<Property Name="CreditBankInstructions" Type="Edm.String"/>
+<Property Name="RegulatoryReporting" Type="Edm.String"/>
+<Property Name="ChargeBearer" Type="Edm.String"/>
+<Property Name="Purpose" Type="Edm.String"/>
+<Property Name="BranchCode" Type="Edm.String"/>
+<Property Name="TaxID" Type="Edm.String"/>
+<Property Name="EntityType" Type="Edm.String"/>
+<Property Name="Relationship" Type="Edm.String"/>
+<Property Name="FurtherCreditName" Type="Edm.String"/>
+<Property Name="FurtherCreditAccNo" Type="Edm.String"/>
+<Property Name="BankBalanceJob" Type="Edm.Int32"/>
+<Property Name="NumberType" Type="Edm.Int32"/>
+<Property Name="NumberTypeDescription" Type="Edm.String"/>
+<Property Name="OpenDate" Type="Edm.DateTimeOffset"/>
+<Property Name="CloseDate" Type="Edm.DateTimeOffset"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0001" Type="Collection(FIS.Integrity.OData.Entity0001)"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="Entity0055" Type="FIS.Integrity.OData.Entity0055"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="Entity0058" Type="Collection(FIS.Integrity.OData.Entity0058)"/>
+<NavigationProperty Name="vtCorpBankBeneficiaryBankCodes" Type="Collection(FIS.Integrity.OData.Entity0059)"/>
+<NavigationProperty Name="vtCorpBankCorrespondentCodes" Type="Collection(FIS.Integrity.OData.Entity0060)"/>
+</EntityType>
+<EntityType Name="Entity0062">
+<Key>
+<PropertyRef Name="CashPool"/>
+</Key>
+<Property Name="CashPool" Type="Edm.String" Nullable="false"/>
+<Property Name="Descr" Type="Edm.String" Nullable="false"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="FundingBUnit" Type="Edm.String"/>
+<Property Name="FundingBankAccnt" Type="Edm.String"/>
+<Property Name="SweepBankAccnt" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="Entity0055" Type="FIS.Integrity.OData.Entity0055"/>
+<NavigationProperty Name="vtCorpPoolGroups" Type="Collection(FIS.Integrity.OData.Entity0063)"/>
+</EntityType>
+<EntityType Name="Entity0004">
+<Key>
+<PropertyRef Name="BankCode"/>
+<PropertyRef Name="BankCodeTypeID"/>
+</Key>
+<Property Name="BankCodeTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BankCode" Type="Edm.String" Nullable="false"/>
+<Property Name="BankName" Type="Edm.String"/>
+<Property Name="BankAddress1" Type="Edm.String"/>
+<Property Name="BankAddress2" Type="Edm.String"/>
+<Property Name="BankAddress3" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0001" Type="Collection(FIS.Integrity.OData.Entity0001)"/>
+<NavigationProperty Name="Entity0010" Type="FIS.Integrity.OData.Entity0010"/>
+</EntityType>
+<EntityType Name="Entity0010">
+<Key>
+<PropertyRef Name="RoutingMethodID"/>
+</Key>
+<Property Name="RoutingMethodID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Code" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="Additional1" Type="Edm.String"/>
+<Property Name="Additional2" Type="Edm.String"/>
+<Property Name="Additional3" Type="Edm.String"/>
+<Property Name="IsActive" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="SecondaryRoutingCode" Type="Edm.String"/>
+<Property Name="IsStandard" Type="Edm.Int16"/>
+</EntityType>
+<EntityType Name="Entity0005">
+<Key>
+<PropertyRef Name="BalanceDate"/>
+<PropertyRef Name="CloseBalFlag"/>
+<PropertyRef Name="OurBank"/>
+<PropertyRef Name="Seq"/>
+</Key>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="BalanceDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="Seq" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CloseBalFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="BankLedgerBal" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="AdjustedLedgerBal" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ClearedFunds" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Cleared1DayFloat" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Cleared2DayFloat" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="RecordType" Type="Edm.Int32"/>
+<Property Name="RecordTypeDescription" Type="Edm.String"/>
+<Property Name="ChangeAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="CreateDateTime" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="Balance1" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance2" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance3" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance4" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance5" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance6" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance7" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance8" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance9" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance10" Type="Edm.Decimal" Scale="Variable"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+</EntityType>
+<EntityType Name="Entity0006">
+<Key>
+<PropertyRef Name="BalanceDate"/>
+<PropertyRef Name="CloseBalFlag"/>
+<PropertyRef Name="OurBank"/>
+</Key>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="BalanceDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="CloseBalFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="BankLedgerBal" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="AdjustedLedgerBal" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ClearedFunds" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Cleared1DayFloat" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Cleared2DayFloat" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="RecordType" Type="Edm.Int32"/>
+<Property Name="ChangeAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="CreateDateTime" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="Balance1" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance2" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance3" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance4" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance5" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance6" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance7" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance8" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance9" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Balance10" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="LastModifiedDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<NavigationProperty Name="Entity0011" Type="Collection(FIS.Integrity.OData.Entity0011)"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="vtBankAcctBalDetails" Type="Collection(FIS.Integrity.OData.Entity0005)"/>
+</EntityType>
+<EntityType Name="Entity0011">
+<Key>
+<PropertyRef Name="Tx_ID"/>
+</Key>
+<Property Name="Tx_ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="ValueDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="PostingDate" Type="Edm.DateTimeOffset"/>
+<Property Name="Amount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="BankTranCode" Type="Edm.String"/>
+<Property Name="BankTranDescr" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="MatchedRef" Type="Edm.Int32"/>
+<Property Name="MatchedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="MatchedNetRef" Type="Edm.Int32"/>
+<Property Name="MatchedNetDate" Type="Edm.DateTimeOffset"/>
+<Property Name="RecordCode" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ImportFlag" Type="Edm.Int16"/>
+<Property Name="CashBookFlag" Type="Edm.Int16"/>
+<Property Name="WSheetCatCode" Type="Edm.String"/>
+<Property Name="Additional1" Type="Edm.String"/>
+<Property Name="Additional2" Type="Edm.String"/>
+<Property Name="Additional3" Type="Edm.String"/>
+<Property Name="Additional4" Type="Edm.String"/>
+<Property Name="Additional5" Type="Edm.String"/>
+<Property Name="GLRef" Type="Edm.Int32" Nullable="false"/>
+<Property Name="RenegRef" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PortRunRef" Type="Edm.Int32"/>
+<Property Name="ProcessStatus" Type="Edm.Int32"/>
+<Property Name="GLProcess" Type="Edm.Int16"/>
+<Property Name="GLNarration" Type="Edm.String"/>
+<Property Name="ReconProcess" Type="Edm.Int16"/>
+<Property Name="TaskLogID" Type="Edm.Int32"/>
+<Property Name="PortCode" Type="Edm.String"/>
+<Property Name="PortRule" Type="Edm.String"/>
+<Property Name="PortAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="TheirBank" Type="Edm.String"/>
+<Property Name="ExternalRefNo" Type="Edm.String"/>
+<Property Name="MatchFlag" Type="Edm.Int16"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="CashTransID" Type="Edm.Int32"/>
+<Property Name="TFlowContNo" Type="Edm.Int32"/>
+<Property Name="TemplateID" Type="Edm.Int32"/>
+<Property Name="IBAContNo" Type="Edm.Int32"/>
+<Property Name="ProcessSequenceNumber" Type="Edm.String"/>
+<Property Name="OriginalWSheetCatCode" Type="Edm.String"/>
+<Property Name="CurrentDay" Type="Edm.Int16"/>
+<Property Name="LastModifiedDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<NavigationProperty Name="Entity0054" Type="FIS.Integrity.OData.Entity0054"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+</EntityType>
+<EntityType Name="Entity0007">
+<Key>
+<PropertyRef Name="BankBranchID"/>
+</Key>
+<Property Name="BankBranchID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BankBranchCode" Type="Edm.String" Nullable="false"/>
+<Property Name="ShortName" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String" Nullable="false"/>
+<Property Name="FinancialInstitutionName" Type="Edm.String" Nullable="false"/>
+<Property Name="BeneficiaryBankName" Type="Edm.String"/>
+<Property Name="CorrespondentBankName" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="DebitBankInstructions" Type="Edm.String"/>
+<Property Name="CreditBankInstructions" Type="Edm.String"/>
+<Property Name="RegulatoryReporting" Type="Edm.String"/>
+<Property Name="ChargeBearer" Type="Edm.String"/>
+<Property Name="BranchCode" Type="Edm.String"/>
+<Property Name="TaxID" Type="Edm.String"/>
+<Property Name="IsMigrated" Type="Edm.Int16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0001" Type="Collection(FIS.Integrity.OData.Entity0001)"/>
+<NavigationProperty Name="vtBankBranchRoutingMethods" Type="Collection(FIS.Integrity.OData.Entity0008)"/>
+</EntityType>
+<EntityType Name="Entity0008">
+<Key>
+<PropertyRef Name="BankBranchID"/>
+<PropertyRef Name="EntityType"/>
+<PropertyRef Name="RoutingMethodID"/>
+</Key>
+<Property Name="BankBranchID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="RoutingMethodID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="EntityType" Type="Edm.String" Nullable="false"/>
+<Property Name="Value" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0010" Type="FIS.Integrity.OData.Entity0010"/>
+</EntityType>
+<EntityType Name="Entity0054">
+<Key>
+<PropertyRef Name="CategoryCode"/>
+</Key>
+<Property Name="CategoryCode" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String" Nullable="false"/>
+<Property Name="PayRecTypeID" Type="Edm.Int32"/>
+<Property Name="PayRecTypeIDDescription" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0053" Type="Collection(FIS.Integrity.OData.Entity0053)"/>
+</EntityType>
+<EntityType Name="Entity0009">
+<Key>
+<PropertyRef Name="MovementId"/>
+</Key>
+<Property Name="MovementId" Type="Edm.Int64" Nullable="false"/>
+<Property Name="CashFlowDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="DayTotalTransAmountPay" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="DayTotalTransAmountRec" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="DayTotalSettleAmountPay" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="DayTotalSettleAmountRec" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="DayTotalWorksheetNote" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="Total" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="LastModifiedDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="Entity0055" Type="FIS.Integrity.OData.Entity0055"/>
+</EntityType>
+<EntityType Name="Entity0072">
+<Key>
+<PropertyRef Name="Curr"/>
+</Key>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="Descr" Type="Edm.String" Nullable="false"/>
+<Property Name="CurrType" Type="Edm.String" Nullable="false"/>
+<Property Name="DaysBasis" Type="Edm.Int16" Nullable="false"/>
+<Property Name="DaysBasisDescription" Type="Edm.String"/>
+<Property Name="DecFormatAmt" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="DecFormatRate" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="RoundingFactor" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="FwdPtsFactor" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="Location" Type="Edm.String" Nullable="false"/>
+<Property Name="BankCurrAlias" Type="Edm.String"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="NpvCurve" Type="Edm.String"/>
+<Property Name="FwdPtsCurve" Type="Edm.String"/>
+<Property Name="FwdPtsFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="IRVolCurve" Type="Edm.String"/>
+<Property Name="Tolerance" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="LinkCommodityType" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IRNormalVolCurve" Type="Edm.String"/>
+<Property Name="CurrencyBasisCurve" Type="Edm.String"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0073" Type="Collection(FIS.Integrity.OData.Entity0073)"/>
+<NavigationProperty Name="vtCurrRefs" Type="Collection(FIS.Integrity.OData.Entity0074)"/>
+</EntityType>
+<EntityType Name="Entity0055">
+<Key>
+<PropertyRef Name="CommodityType"/>
+</Key>
+<Property Name="CommodityType" Type="Edm.String" Nullable="false"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="Location" Type="Edm.String" Nullable="false"/>
+<Property Name="Purity" Type="Edm.String" Nullable="false"/>
+<Property Name="CommUnits" Type="Edm.String" Nullable="false"/>
+<Property Name="UnitCurr" Type="Edm.String" Nullable="false"/>
+<Property Name="Descr" Type="Edm.String"/>
+<Property Name="UseMarketRates" Type="Edm.Int16" Nullable="false"/>
+<Property Name="UseMarketIndex" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0012">
+<Key>
+<PropertyRef Name="Tx_ID"/>
+</Key>
+<Property Name="Tx_ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="ValueDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="PostingDate" Type="Edm.DateTimeOffset"/>
+<Property Name="Amount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="BankTranCode" Type="Edm.String"/>
+<Property Name="BankTranDescr" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="MatchedRef" Type="Edm.Int32"/>
+<Property Name="MatchedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="MatchedNetRef" Type="Edm.Int32"/>
+<Property Name="MatchedNetDate" Type="Edm.DateTimeOffset"/>
+<Property Name="RecordCode" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ImportFlag" Type="Edm.Int16"/>
+<Property Name="CashBookFlag" Type="Edm.Int16"/>
+<Property Name="WSheetCatCode" Type="Edm.String"/>
+<Property Name="Additional1" Type="Edm.String"/>
+<Property Name="Additional2" Type="Edm.String"/>
+<Property Name="Additional3" Type="Edm.String"/>
+<Property Name="Additional4" Type="Edm.String"/>
+<Property Name="Additional5" Type="Edm.String"/>
+<Property Name="GLRef" Type="Edm.Int32"/>
+<Property Name="RenegRef" Type="Edm.Int32"/>
+<Property Name="PortRunRef" Type="Edm.Int32"/>
+<Property Name="ProcessStatus" Type="Edm.Int32"/>
+<Property Name="ProcessStatusDescription" Type="Edm.String"/>
+<Property Name="GLProcess" Type="Edm.Int16"/>
+<Property Name="GLNarration" Type="Edm.String"/>
+<Property Name="ReconProcess" Type="Edm.Int16"/>
+<Property Name="TaskLogID" Type="Edm.Int32"/>
+<Property Name="TheirBank" Type="Edm.String"/>
+<Property Name="ExternalRefNo" Type="Edm.String"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+</EntityType>
+<EntityType Name="Entity0013">
+<Key>
+<PropertyRef Name="BUnit"/>
+</Key>
+<Property Name="BUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="Hierarchy" Type="Edm.Int16" Nullable="false"/>
+<Property Name="HierarchyDescription" Type="Edm.String"/>
+<Property Name="FullName" Type="Edm.String"/>
+<Property Name="ShortName" Type="Edm.String" Nullable="false"/>
+<Property Name="Address" Type="Edm.String"/>
+<Property Name="Salutation" Type="Edm.String"/>
+<Property Name="FaxNo" Type="Edm.String"/>
+<Property Name="Telex" Type="Edm.String"/>
+<Property Name="LocalCurr" Type="Edm.String" Nullable="false"/>
+<Property Name="LocalCommodityType" Type="Edm.String"/>
+<Property Name="ReportCurr" Type="Edm.String" Nullable="false"/>
+<Property Name="ReportCommodityType" Type="Edm.String"/>
+<Property Name="NotUsed1" Type="Edm.String"/>
+<Property Name="IsActive" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="ParentBUnit" Type="Edm.String"/>
+<Property Name="LegalEntity" Type="Edm.String" Nullable="false"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="NettingCentre" Type="Edm.String"/>
+<Property Name="NettingDateSet" Type="Edm.String"/>
+<Property Name="GroupReport" Type="Edm.String"/>
+<Property Name="Ownership" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="TaxRate1" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="TaxRate2" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="TaxRate3" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="TaxRate4" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="JnlSet" Type="Edm.Int16" Nullable="false"/>
+<Property Name="FidLimitAmt" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="FidLimitTerm" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FidMaxAmt" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="FidFlatRate" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="FidTermRate" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="OperatingUnit" Type="Edm.Int16" Nullable="false"/>
+<Property Name="CollateralLevelPerCptyMin" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="CollateralLevelPerCptyMax" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="MonitorQualifiedSecurities" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ExcessNetCapitalAmt" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="AutoMirrorFRA" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AutoMirrorFX" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AutoMirrorInterCompany" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AutoMirrorIRSwap" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AutoMirrorLongCash" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AutoMirrorNonTreasury" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AutoMirrorShortCash" Type="Edm.Int16" Nullable="false"/>
+<Property Name="CountryCode" Type="Edm.String"/>
+<Property Name="DRAllowSelfConfirm" Type="Edm.Int16" Nullable="false"/>
+<Property Name="DRDualConfirmRequired" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AutoMirrorFXOption" Type="Edm.Int16"/>
+<Property Name="DeltaCurve" Type="Edm.String"/>
+<Property Name="LegalEntityId" Type="Edm.String"/>
+<Property Name="CorpSector" Type="Edm.String"/>
+<Property Name="FinanceCorp" Type="Edm.Int16"/>
+<Property Name="CentralClearing" Type="Edm.Int16"/>
+<Property Name="EurEcoArea" Type="Edm.Int16"/>
+<Property Name="IdentifierType" Type="Edm.String"/>
+<Property Name="TradingCapacity" Type="Edm.String"/>
+<Property Name="PrimaryActivity" Type="Edm.String"/>
+<Property Name="Reporting1" Type="Edm.String"/>
+<Property Name="Reporting2" Type="Edm.String"/>
+<Property Name="Reporting3" Type="Edm.String"/>
+<Property Name="Reporting4" Type="Edm.String"/>
+<Property Name="Reporting5" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="DealingPortal" Type="Edm.String"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0001" Type="FIS.Integrity.OData.Entity0001"/>
+<NavigationProperty Name="vtBunitPorts" Type="Collection(FIS.Integrity.OData.Entity0016)"/>
+<NavigationProperty Name="vtLocalCurrency" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="vtParentBUnit" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="vtBunitConsols" Type="Collection(FIS.Integrity.OData.Entity0014)"/>
+<NavigationProperty Name="vtBunitSettles" Type="Collection(FIS.Integrity.OData.Entity0017)"/>
+<NavigationProperty Name="vtExps" Type="Collection(FIS.Integrity.OData.Entity0077)"/>
+<NavigationProperty Name="Entity0055" Type="FIS.Integrity.OData.Entity0055"/>
+</EntityType>
+<EntityType Name="Entity0016">
+<Key>
+<PropertyRef Name="BUnit"/>
+<PropertyRef Name="PortCode"/>
+</Key>
+<Property Name="BUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="PortCode" Type="Edm.String" Nullable="false"/>
+<Property Name="Descr" Type="Edm.String"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0014">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="MapType" Type="Edm.String" Nullable="false"/>
+<Property Name="MapRef" Type="Edm.String" Nullable="false"/>
+<Property Name="MapCpty" Type="Edm.String"/>
+<Property Name="BUnitExp" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IsDefaultMirrorBank" Type="Edm.Int16" Nullable="false"/>
+<Property Name="UsedForCashForecast" Type="Edm.Int16" Nullable="false"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+</EntityType>
+<EntityType Name="Entity0017">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleCurr" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleCommodityType" Type="Edm.String"/>
+<Property Name="PayReceive" Type="Edm.String" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranCode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String"/>
+<Property Name="Cpty" Type="Edm.String"/>
+<Property Name="SettleAgent" Type="Edm.String"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleMethod" Type="Edm.String"/>
+<Property Name="FmtTranType" Type="Edm.String"/>
+<Property Name="PreFormatCode" Type="Edm.String"/>
+<Property Name="ToBUnit" Type="Edm.String"/>
+<Property Name="ToOurBank" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="RoutingMethod" Type="Edm.String"/>
+</EntityType>
+<EntityType Name="Entity0077">
+<Key>
+<PropertyRef Name="Cpty"/>
+<PropertyRef Name="ExpCode"/>
+<PropertyRef Name="ExpTypeID"/>
+</Key>
+<Property Name="Cpty" Type="Edm.String" Nullable="false"/>
+<Property Name="ExpTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ExpCode" Type="Edm.String" Nullable="false"/>
+<Property Name="ExpAmt" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ExpCurr" Type="Edm.String"/>
+<Property Name="ExpCommodityType" Type="Edm.String"/>
+<Property Name="ReviewDate" Type="Edm.DateTimeOffset"/>
+<Property Name="SecurityType" Type="Edm.String"/>
+<Property Name="SecurityCover" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ParentCpty" Type="Edm.String"/>
+<Property Name="ParentExpCode" Type="Edm.String"/>
+<Property Name="NetSettleFlag" Type="Edm.Int16"/>
+<Property Name="DocType" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0064" Type="FIS.Integrity.OData.Entity0064"/>
+</EntityType>
+<EntityType Name="Entity0015">
+<Key>
+<PropertyRef Name="AccountForBUnit"/>
+<PropertyRef Name="BooksOfBUnit"/>
+</Key>
+<Property Name="BooksOfBUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="AccountForBUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="GLAccountNo" Type="Edm.String" Nullable="false"/>
+<Property Name="Descr" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0018">
+<Key>
+<PropertyRef Name="AddendaCode"/>
+</Key>
+<Property Name="AddendaCode" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="vtCashAddendaFields" Type="Collection(FIS.Integrity.OData.Entity0019)"/>
+</EntityType>
+<EntityType Name="Entity0019">
+<Key>
+<PropertyRef Name="AddendaCode"/>
+<PropertyRef Name="FieldName"/>
+</Key>
+<Property Name="AddendaCode" Type="Edm.String" Nullable="false"/>
+<Property Name="FieldName" Type="Edm.String" Nullable="false"/>
+<Property Name="DefaultValue" Type="Edm.String"/>
+<Property Name="ModifyFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="MandatoryEFT" Type="Edm.Int16" Nullable="false"/>
+<Property Name="DataType" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FieldLength" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ListID" Type="Edm.Int32"/>
+<Property Name="SequenceNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="vtCashAddendaLists" Type="Collection(FIS.Integrity.OData.Entity0020)"/>
+</EntityType>
+<EntityType Name="Entity0020">
+<Key>
+<PropertyRef Name="AddendaCode"/>
+<PropertyRef Name="FieldName"/>
+<PropertyRef Name="ListValue"/>
+</Key>
+<Property Name="AddendaCode" Type="Edm.String" Nullable="false"/>
+<Property Name="FieldName" Type="Edm.String" Nullable="false"/>
+<Property Name="ListValue" Type="Edm.String" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0023">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Code" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="IsDefault" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0024">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="LayoutId" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Name" Type="Edm.String" Nullable="false"/>
+<Property Name="SequenceNo" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0023" Type="FIS.Integrity.OData.Entity0023"/>
+<NavigationProperty Name="vtCashLayoutGrpCats" Type="Collection(FIS.Integrity.OData.Entity0025)"/>
+</EntityType>
+<EntityType Name="Entity0025">
+<Key>
+<PropertyRef Name="CategoryCode"/>
+<PropertyRef Name="LayoutGroupId"/>
+</Key>
+<Property Name="LayoutGroupId" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CategoryCode" Type="Edm.String" Nullable="false"/>
+<Property Name="SequenceNo" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0024" Type="FIS.Integrity.OData.Entity0024"/>
+<NavigationProperty Name="Entity0054" Type="FIS.Integrity.OData.Entity0054"/>
+</EntityType>
+<EntityType Name="Entity0027">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="MultiDisectID"/>
+</Key>
+<Property Name="MultiDisectID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GLAccountNo" Type="Edm.String" Nullable="false"/>
+<Property Name="DR_CR" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DR_CRDescription" Type="Edm.String"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IsSuspenseAccount" Type="Edm.Int16"/>
+</EntityType>
+<EntityType Name="Entity0028">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="MultiDisectID"/>
+</Key>
+<Property Name="MultiDisectID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GLAccountNo" Type="Edm.String" Nullable="false"/>
+<Property Name="DR_CR" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DR_CRDescription" Type="Edm.String"/>
+<Property Name="Percentage" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="IsSuspenseAccount" Type="Edm.Int16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0029">
+<Key>
+<PropertyRef Name="CashTransID"/>
+</Key>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTypeIDDescription" Type="Edm.String"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="WkSheetCategory" Type="Edm.String"/>
+<Property Name="Bunit" Type="Edm.String"/>
+<Property Name="Priority" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PriorityDescription" Type="Edm.String"/>
+<Property Name="ContNo" Type="Edm.Int32"/>
+<Property Name="TheirBank" Type="Edm.String"/>
+<Property Name="CashBookFlag" Type="Edm.Int32"/>
+<Property Name="GLNarration" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IsTradeFlowGLRequired" Type="Edm.Int16"/>
+<Property Name="Deactivated" Type="Edm.Int16"/>
+<Property Name="TradeFlowTypeID" Type="Edm.Int32"/>
+<Property Name="TradeFlowTypeIDDescription" Type="Edm.String"/>
+<Property Name="TradeFlowTranType" Type="Edm.String"/>
+<Property Name="Name" Type="Edm.String"/>
+<Property Name="OriginalRuleDefinition" Type="Edm.String"/>
+<Property Name="BTMSystemCode" Type="Edm.Int32"/>
+<Property Name="LastUsedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="Additional1" Type="Edm.String"/>
+<Property Name="Additional2" Type="Edm.String"/>
+<Property Name="Additional3" Type="Edm.String"/>
+<Property Name="Additional4" Type="Edm.String"/>
+<Property Name="Additional5" Type="Edm.String"/>
+<NavigationProperty Name="vtCashStmtRuleDetails" Type="Collection(FIS.Integrity.OData.Entity0030)"/>
+<NavigationProperty Name="vtCashStmtRuleOurbanks" Type="Collection(FIS.Integrity.OData.Entity0031)"/>
+<NavigationProperty Name="vtCashStmtRulePoolGroups" Type="Collection(FIS.Integrity.OData.Entity0032)"/>
+<NavigationProperty Name="vtCashStmtMultiDissects" Type="Collection(FIS.Integrity.OData.Entity0028)"/>
+<NavigationProperty Name="vtCashMultiDissects" Type="Collection(FIS.Integrity.OData.Entity0027)"/>
+</EntityType>
+<EntityType Name="Entity0030">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="CashTransSubID"/>
+</Key>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTransSubID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FieldName" Type="Edm.String" Nullable="false"/>
+<Property Name="Operator" Type="Edm.String" Nullable="false"/>
+<Property Name="Value" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0031">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="OurBank"/>
+</Key>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0032">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="GroupName"/>
+</Key>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GroupName" Type="Edm.String" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0033">
+<Key>
+<PropertyRef Name="ContractKey"/>
+<PropertyRef Name="FieldName"/>
+<PropertyRef Name="RecordNo"/>
+<PropertyRef Name="TradeFlowTypeID"/>
+</Key>
+<Property Name="ContractKey" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TradeFlowTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="RecordNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FieldName" Type="Edm.String" Nullable="false"/>
+<Property Name="TradeFlowTypeIDDescription" Type="Edm.String"/>
+<Property Name="FieldValue" Type="Edm.String"/>
+<NavigationProperty Name="vtCashTflowAddendaImgs" Type="Collection(FIS.Integrity.OData.Entity0034)"/>
+</EntityType>
+<EntityType Name="Entity0034">
+<Key>
+<PropertyRef Name="ContractKey"/>
+<PropertyRef Name="FieldName"/>
+<PropertyRef Name="ImageNo"/>
+<PropertyRef Name="RecordNo"/>
+<PropertyRef Name="TradeFlowTypeID"/>
+</Key>
+<Property Name="ContractKey" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ImageNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TradeFlowTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="RecordNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FieldName" Type="Edm.String" Nullable="false"/>
+<Property Name="FieldValue" Type="Edm.String"/>
+</EntityType>
+<EntityType Name="Entity0036">
+<Key>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TradeFlowTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TradeFlowTypeIDDescription" Type="Edm.String"/>
+<Property Name="BUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="Cpty" Type="Edm.String"/>
+<Property Name="DealDate" Type="Edm.DateTimeOffset"/>
+<Property Name="ValueDate" Type="Edm.DateTimeOffset"/>
+<Property Name="InputDate" Type="Edm.DateTimeOffset"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="Amount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="PayRec" Type="Edm.Int32" Nullable="false"/>
+<Property Name="LastActionDate" Type="Edm.DateTimeOffset"/>
+<Property Name="SettlementMethod" Type="Edm.String"/>
+<Property Name="PreFormatCode" Type="Edm.String"/>
+<Property Name="OurBankPay" Type="Edm.String"/>
+<Property Name="OurBankRec" Type="Edm.String"/>
+<Property Name="TheirBankPay" Type="Edm.String"/>
+<Property Name="TheirBankRec" Type="Edm.String"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="ContTypeID" Type="Edm.Int32"/>
+<Property Name="ContTypeIDDescription" Type="Edm.String"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranModeDescription" Type="Edm.String"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="TranSubType" Type="Edm.String"/>
+<Property Name="GLRequired" Type="Edm.Int16"/>
+<Property Name="HedgeRequired" Type="Edm.Int16"/>
+<Property Name="HedgeExposureTypeID" Type="Edm.Int32"/>
+<Property Name="HedgeExposureTypeIDDescription" Type="Edm.String"/>
+<Property Name="Recurring" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Allocation" Type="Edm.String"/>
+<Property Name="PortCode" Type="Edm.String"/>
+<Property Name="LinkRef1" Type="Edm.String"/>
+<Property Name="LinkRef2" Type="Edm.String"/>
+<Property Name="LinkRef3" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="DataSource" Type="Edm.String"/>
+<Property Name="ApprovalStatus" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ApprovalStatusDescription" Type="Edm.String"/>
+<Property Name="LineNumber" Type="Edm.String"/>
+<Property Name="Repetitive" Type="Edm.Int32"/>
+<Property Name="RepetitiveDescription" Type="Edm.String"/>
+<Property Name="InitiatorID" Type="Edm.String"/>
+<Property Name="ParentTemplateID" Type="Edm.Int32"/>
+<Property Name="GLPercentage" Type="Edm.Int16"/>
+<Property Name="OFACStatus" Type="Edm.Int32"/>
+<Property Name="OFACStatusDescription" Type="Edm.String"/>
+<Property Name="OFACSystemStatus" Type="Edm.Int32"/>
+<Property Name="OFACComments" Type="Edm.String"/>
+<Property Name="OFACSystemComments" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="TheirContractRef" Type="Edm.String"/>
+<Property Name="TheirTransactionRef" Type="Edm.String"/>
+<Property Name="AuthorisedStatus" Type="Edm.Int32" Nullable="false"/>
+<Property Name="AuthorisedStatusDescription" Type="Edm.String"/>
+<Property Name="AuthorisedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="AuthorisedBy" Type="Edm.String"/>
+<Property Name="CheckedStatus" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CheckedStatusDescription" Type="Edm.String"/>
+<Property Name="CheckedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="CheckedBy" Type="Edm.String"/>
+<Property Name="ComparedStatus" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ComparedStatusDescription" Type="Edm.String"/>
+<Property Name="ComparedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="ComparedBy" Type="Edm.String"/>
+<Property Name="UserID" Type="Edm.String"/>
+<Property Name="DealerID" Type="Edm.String"/>
+<Property Name="AddendaCode" Type="Edm.String"/>
+<Property Name="IssueStatus" Type="Edm.Int32"/>
+<Property Name="IssueStatusDescription" Type="Edm.String"/>
+<Property Name="IssueComments" Type="Edm.String"/>
+<Property Name="IssueDate" Type="Edm.DateTimeOffset"/>
+<Property Name="IssuerID" Type="Edm.String"/>
+<Property Name="BuySellTypeID" Type="Edm.Int32"/>
+<Property Name="BuySellTypeIDDescription" Type="Edm.String"/>
+<Property Name="BuyCurr" Type="Edm.String"/>
+<Property Name="BuyAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ExternalSystemXRef" Type="Edm.String"/>
+<Property Name="SpotRate" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ForwardPoints" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ForwardRate" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="PortRunRefPay" Type="Edm.Int32"/>
+<Property Name="PortRunRefRec" Type="Edm.Int32"/>
+<Property Name="SequenceApprovalStatus" Type="Edm.String"/>
+<Property Name="CreateLogical" Type="Edm.Int16"/>
+<Property Name="LastModifiedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="EditorID" Type="Edm.String"/>
+<Property Name="RoutingMethodCode" Type="Edm.String"/>
+<Property Name="MacroForecastTemplateID" Type="Edm.Int32"/>
+<Property Name="OnBehalfOfCharge" Type="Edm.Int16"/>
+<Property Name="OnICChargeBack" Type="Edm.Int16"/>
+<Property Name="ExcludeForecast" Type="Edm.Int16"/>
+<Property Name="CashFlowDate" Type="Edm.DateTimeOffset"/>
+<Property Name="ExcludeExpected" Type="Edm.Int16"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IsEFT" Type="Edm.Int16"/>
+<Property Name="SellCurr" Type="Edm.String"/>
+<Property Name="SellAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ThirdPartyTransactionId" Type="Edm.Int32"/>
+<Property Name="OFACFromWhichList" Type="Edm.String"/>
+<Property Name="OFACSystemRemarks" Type="Edm.String"/>
+<Property Name="OFACFailureReason" Type="Edm.String"/>
+<Property Name="ThirdPartyPortfolio" Type="Edm.String"/>
+<Property Name="UETR" Type="Edm.String"/>
+<Property Name="TieredApprovalRuleID" Type="Edm.Int32"/>
+<Property Name="ProcessStatus" Type="Edm.Int32"/>
+<Property Name="InputRuleImgID" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0001" Type="Collection(FIS.Integrity.OData.Entity0001)"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="Entity0064" Type="FIS.Integrity.OData.Entity0064"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="vtCorpBank_OurBankPay" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="vtCorpBank_OurBankRec" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="vtCptyBank_TheirBankPay" Type="FIS.Integrity.OData.Entity0065"/>
+<NavigationProperty Name="vtCptyBank_TheirBankRec" Type="FIS.Integrity.OData.Entity0065"/>
+<NavigationProperty Name="Entity0096" Type="FIS.Integrity.OData.Entity0096"/>
+<NavigationProperty Name="Entity0033" Type="FIS.Integrity.OData.Entity0033"/>
+<NavigationProperty Name="Entity0035" Type="FIS.Integrity.OData.Entity0035"/>
+<NavigationProperty Name="vtCashTflowTemplateActions" Type="Collection(FIS.Integrity.OData.Entity0037)"/>
+<NavigationProperty Name="vtCashTflowTemplateAlcs" Type="Collection(FIS.Integrity.OData.Entity0038)"/>
+<NavigationProperty Name="vtCashTflowTemplateApps" Type="Collection(FIS.Integrity.OData.Entity0039)"/>
+<NavigationProperty Name="Entity0041" Type="FIS.Integrity.OData.Entity0041"/>
+<NavigationProperty Name="vtCashTflowTemplateEfts" Type="Collection(FIS.Integrity.OData.Entity0042)"/>
+<NavigationProperty Name="vtCashTflowTemplateGls" Type="Collection(FIS.Integrity.OData.Entity0044)"/>
+<NavigationProperty Name="Entity0055" Type="FIS.Integrity.OData.Entity0055"/>
+</EntityType>
+<EntityType Name="Entity0064">
+<Key>
+<PropertyRef Name="Cpty"/>
+</Key>
+<Property Name="Cpty" Type="Edm.String" Nullable="false"/>
+<Property Name="FullName" Type="Edm.String"/>
+<Property Name="Address" Type="Edm.String"/>
+<Property Name="Salutation" Type="Edm.String"/>
+<Property Name="ShortName" Type="Edm.String" Nullable="false"/>
+<Property Name="FaxNo" Type="Edm.String"/>
+<Property Name="Telex" Type="Edm.String"/>
+<Property Name="BUnit" Type="Edm.String"/>
+<Property Name="ExpGroup" Type="Edm.String"/>
+<Property Name="ExternalX" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Internal" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Broker" Type="Edm.Int16" Nullable="false"/>
+<Property Name="CHouse" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Issuer" Type="Edm.Int16" Nullable="false"/>
+<Property Name="CashPay" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Agent" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ExpMonitor" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Notional" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ParentCpty" Type="Edm.String"/>
+<Property Name="Hierarchy" Type="Edm.Byte"/>
+<Property Name="HierarchyDescription" Type="Edm.String"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="GroupReport" Type="Edm.String"/>
+<Property Name="Category" Type="Edm.String"/>
+<Property Name="SubCategory" Type="Edm.String"/>
+<Property Name="CountryCode" Type="Edm.String"/>
+<Property Name="CreditRatingST" Type="Edm.String"/>
+<Property Name="CreditRatingLT" Type="Edm.String"/>
+<Property Name="CreditMargin" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="WTaxFlagPay" Type="Edm.String"/>
+<Property Name="WTaxRatePay" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="WTaxFlagRec" Type="Edm.String"/>
+<Property Name="WTaxRateRec" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="OTaxFlagPay" Type="Edm.String"/>
+<Property Name="OTaxRatePay" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="OTaxFlagRec" Type="Edm.String"/>
+<Property Name="OTaxRateRec" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="OTaxSignPay" Type="Edm.Int16"/>
+<Property Name="OTaxSignRec" Type="Edm.Int16"/>
+<Property Name="TaxFlag" Type="Edm.String"/>
+<Property Name="TaxRefNo" Type="Edm.String"/>
+<Property Name="NetSettleFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="FreeFormCode1" Type="Edm.String"/>
+<Property Name="FreeFormCode2" Type="Edm.String"/>
+<Property Name="FreeFormCode3" Type="Edm.String"/>
+<Property Name="FreeFormCode4" Type="Edm.String"/>
+<Property Name="ReportCode1" Type="Edm.String"/>
+<Property Name="ReportCode2" Type="Edm.String"/>
+<Property Name="ReportCode3" Type="Edm.String"/>
+<Property Name="ReportCode4" Type="Edm.String"/>
+<Property Name="ApprovedIssuer" Type="Edm.Int16" Nullable="false"/>
+<Property Name="EquityCapital" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="EquityCapitalCurr" Type="Edm.String"/>
+<Property Name="EquityCapitalCommodityType" Type="Edm.String"/>
+<Property Name="JapaneseInterestRounding" Type="Edm.Int16" Nullable="false"/>
+<Property Name="JapaneseFXRounding" Type="Edm.Int16" Nullable="false"/>
+<Property Name="IsActive" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="WTaxCapFlagPay" Type="Edm.Int16" Nullable="false"/>
+<Property Name="WTaxCapIntRatePay" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="WTaxCapFlagRec" Type="Edm.Int16" Nullable="false"/>
+<Property Name="WTaxCapIntRateRec" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="WTaxMethodID" Type="Edm.Int32"/>
+<Property Name="WTaxMethodIDDescription" Type="Edm.String"/>
+<Property Name="PointCheck" Type="Edm.Int32"/>
+<Property Name="PointCheckDescription" Type="Edm.String"/>
+<Property Name="CertificateIncorporation" Type="Edm.Int32"/>
+<Property Name="TrusteesBeneficiaries" Type="Edm.Int32"/>
+<Property Name="TrusteesBeneficiariesDescription" Type="Edm.String"/>
+<Property Name="CutOffTime" Type="Edm.DateTimeOffset"/>
+<Property Name="DefaultPreDeliveryPeriodTenor" Type="Edm.Int32"/>
+<Property Name="DefaultRollPeriodTenor" Type="Edm.Int32"/>
+<Property Name="DefaultPreDeliveryPeriodUnit" Type="Edm.Int32"/>
+<Property Name="DefaultRollPeriodUnit" Type="Edm.Int32"/>
+<Property Name="DefaultRollPeriodUnitDescription" Type="Edm.String"/>
+<Property Name="ApplyJapaneseRoundingToAll" Type="Edm.Int16" Nullable="false"/>
+<Property Name="DeltaCurve" Type="Edm.String"/>
+<Property Name="LegalEntityId" Type="Edm.String"/>
+<Property Name="CentralClearing" Type="Edm.Int16"/>
+<Property Name="EurEcoArea" Type="Edm.Int16"/>
+<Property Name="CentralCpty" Type="Edm.Int16"/>
+<Property Name="CCPClearingMember" Type="Edm.Int16"/>
+<Property Name="TradeRepository" Type="Edm.Int16"/>
+<Property Name="CreditRating1" Type="Edm.String"/>
+<Property Name="CreditRating2" Type="Edm.String"/>
+<Property Name="CreditRating3" Type="Edm.String"/>
+<Property Name="CreditRating4" Type="Edm.String"/>
+<Property Name="IdentifierType" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="DealingPortal" Type="Edm.String"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0001" Type="FIS.Integrity.OData.Entity0001"/>
+<NavigationProperty Name="vtCptyBanks" Type="Collection(FIS.Integrity.OData.Entity0065)"/>
+<NavigationProperty Name="Entity0068" Type="Collection(FIS.Integrity.OData.Entity0068)"/>
+<NavigationProperty Name="vtCptyExpLinks" Type="Collection(FIS.Integrity.OData.Entity0069)"/>
+<NavigationProperty Name="Entity0070" Type="Collection(FIS.Integrity.OData.Entity0070)"/>
+<NavigationProperty Name="vtCptySettles" Type="Collection(FIS.Integrity.OData.Entity0071)"/>
+</EntityType>
+<EntityType Name="Entity0065">
+<Key>
+<PropertyRef Name="Cpty"/>
+<PropertyRef Name="TheirBank"/>
+</Key>
+<Property Name="Cpty" Type="Edm.String" Nullable="false"/>
+<Property Name="TheirBank" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleCurr" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleCommodityType" Type="Edm.String"/>
+<Property Name="Descr" Type="Edm.String" Nullable="false"/>
+<Property Name="AccountNo" Type="Edm.String"/>
+<Property Name="IBAN" Type="Edm.String"/>
+<Property Name="ChipsUID" Type="Edm.String"/>
+<Property Name="EFTAlias" Type="Edm.String"/>
+<Property Name="ClearingMethod" Type="Edm.String"/>
+<Property Name="BSBNo" Type="Edm.String"/>
+<Property Name="Fedwire" Type="Edm.String"/>
+<Property Name="ABANo" Type="Edm.String"/>
+<Property Name="BenName1" Type="Edm.String"/>
+<Property Name="BenName2" Type="Edm.String"/>
+<Property Name="BenName3" Type="Edm.String"/>
+<Property Name="BenName4" Type="Edm.String"/>
+<Property Name="BenBank1" Type="Edm.String"/>
+<Property Name="BenBank2" Type="Edm.String"/>
+<Property Name="BenBank3" Type="Edm.String"/>
+<Property Name="BenBank4" Type="Edm.String"/>
+<Property Name="CorBank1" Type="Edm.String"/>
+<Property Name="CorBank2" Type="Edm.String"/>
+<Property Name="CorBank3" Type="Edm.String"/>
+<Property Name="CorBank4" Type="Edm.String"/>
+<Property Name="CorBankEFTAlias" Type="Edm.String"/>
+<Property Name="CorBankEFTCode" Type="Edm.String"/>
+<Property Name="CorBankABANo" Type="Edm.String"/>
+<Property Name="Comment1" Type="Edm.String"/>
+<Property Name="Comment2" Type="Edm.String"/>
+<Property Name="Comment3" Type="Edm.String"/>
+<Property Name="Comment4" Type="Edm.String"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="SwiftOperationCodeID" Type="Edm.Int32"/>
+<Property Name="SwiftOperationCodeIDDescription" Type="Edm.String"/>
+<Property Name="SwiftChargeCodeID" Type="Edm.Int32"/>
+<Property Name="SwiftChargeCodeIDDescription" Type="Edm.String"/>
+<Property Name="IsActive" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="SortCode" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="BankBranchID" Type="Edm.Int32"/>
+<Property Name="DebitBankInstructions" Type="Edm.String"/>
+<Property Name="CreditBankInstructions" Type="Edm.String"/>
+<Property Name="RegulatoryReporting" Type="Edm.String"/>
+<Property Name="ChargeBearer" Type="Edm.String"/>
+<Property Name="Purpose" Type="Edm.String"/>
+<Property Name="BranchCode" Type="Edm.String"/>
+<Property Name="TaxID" Type="Edm.String"/>
+<Property Name="EntityType" Type="Edm.String"/>
+<Property Name="Relationship" Type="Edm.String"/>
+<Property Name="FurtherCreditName" Type="Edm.String"/>
+<Property Name="FurtherCreditAccNo" Type="Edm.String"/>
+<Property Name="NumberType" Type="Edm.Int32"/>
+<Property Name="NumberTypeDescription" Type="Edm.String"/>
+<NavigationProperty Name="Entity0001" Type="Collection(FIS.Integrity.OData.Entity0001)"/>
+<NavigationProperty Name="Entity0007" Type="FIS.Integrity.OData.Entity0007"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="Entity0055" Type="FIS.Integrity.OData.Entity0055"/>
+<NavigationProperty Name="vtCptyBankBeneficiaryBankCodes" Type="Collection(FIS.Integrity.OData.Entity0066)"/>
+<NavigationProperty Name="vtCptyBankCorrespondentCodes" Type="Collection(FIS.Integrity.OData.Entity0067)"/>
+</EntityType>
+<EntityType Name="Entity0096">
+<Key>
+<PropertyRef Name="TranID"/>
+</Key>
+<Property Name="TranID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String" Nullable="false"/>
+<Property Name="FormulaTypeID" Type="Edm.Int32"/>
+<Property Name="FormulaTypeIDDescription" Type="Edm.String"/>
+<Property Name="Category" Type="Edm.String"/>
+<Property Name="Curr" Type="Edm.String"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="ActionDaysFX" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ActionDaysDomestic" Type="Edm.Int16" Nullable="false"/>
+<Property Name="IsActive" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="VaRUsesCashFlows" Type="Edm.Int16" Nullable="false"/>
+<Property Name="NonLinearPriceSensitivity" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Indexed" Type="Edm.Int16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="vtTransAttributes" Type="Collection(FIS.Integrity.OData.Entity0097)"/>
+<NavigationProperty Name="Entity0099" Type="Collection(FIS.Integrity.OData.Entity0099)"/>
+<NavigationProperty Name="Entity0098" Type="Collection(FIS.Integrity.OData.Entity0098)"/>
+<NavigationProperty Name="vtTransSettles" Type="Collection(FIS.Integrity.OData.Entity0101)"/>
+<NavigationProperty Name="Entity0100" Type="Collection(FIS.Integrity.OData.Entity0100)"/>
+</EntityType>
+<EntityType Name="Entity0035">
+<Key>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TradeID" Type="Edm.String"/>
+<Property Name="CentralCPty" Type="Edm.String"/>
+<Property Name="CCPClearingMember" Type="Edm.String"/>
+<Property Name="TradeRepository" Type="Edm.String"/>
+<Property Name="HedgeExemption" Type="Edm.Int16"/>
+<Property Name="IntraGroupExemption" Type="Edm.Int16"/>
+<Property Name="TRReportingExemption" Type="Edm.Int16"/>
+<Property Name="Additional1" Type="Edm.String"/>
+<Property Name="Additional2" Type="Edm.String"/>
+<Property Name="Additional3" Type="Edm.String"/>
+<Property Name="Additional4" Type="Edm.String"/>
+<Property Name="Additional5" Type="Edm.String"/>
+<Property Name="Additional6" Type="Edm.String"/>
+<Property Name="Additional7" Type="Edm.String"/>
+<Property Name="Additional8" Type="Edm.String"/>
+<Property Name="Additional9" Type="Edm.String"/>
+<Property Name="Additional10" Type="Edm.String"/>
+<Property Name="Additional11" Type="Edm.String"/>
+<Property Name="Additional12" Type="Edm.String"/>
+<Property Name="Additional13" Type="Edm.String"/>
+<Property Name="Additional14" Type="Edm.String"/>
+<Property Name="Additional15" Type="Edm.String"/>
+<Property Name="Additional16" Type="Edm.String"/>
+<Property Name="Additional17" Type="Edm.String"/>
+<Property Name="Additional18" Type="Edm.String"/>
+<Property Name="Additional19" Type="Edm.String"/>
+<Property Name="Additional20" Type="Edm.String"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0037">
+<Key>
+<PropertyRef Name="ID"/>
+</Key>
+<Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="UserID" Type="Edm.String" Nullable="false"/>
+<Property Name="UserGroupID" Type="Edm.Int32"/>
+<Property Name="SetNo" Type="Edm.Int32"/>
+<Property Name="ActionResult" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ActionResultDescription" Type="Edm.String"/>
+<Property Name="ActionDateTime" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0038">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="Amount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ContNo" Type="Edm.Int32"/>
+<Property Name="FxRate" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ChargeAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ContRef" Type="Edm.Int32"/>
+<Property Name="Ccy" Type="Edm.String"/>
+<Property Name="CcyPair" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="BUnitCategory" Type="Edm.String"/>
+<Property Name="CptyCategory" Type="Edm.String"/>
+<Property Name="UseSpecialFxRate" Type="Edm.Int16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0039">
+<Key>
+<PropertyRef Name="ApproverID"/>
+<PropertyRef Name="SetNo"/>
+<PropertyRef Name="Status"/>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ApproverID" Type="Edm.String" Nullable="false"/>
+<Property Name="SetNo" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Status" Type="Edm.Int32" Nullable="false"/>
+<Property Name="StatusDescription" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="GroupName" Type="Edm.String"/>
+<Property Name="Sequence" Type="Edm.Int32"/>
+<Property Name="ActionDate" Type="Edm.DateTimeOffset"/>
+</EntityType>
+<EntityType Name="Entity0041">
+<Key>
+<PropertyRef Name="ID"/>
+</Key>
+<Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BUnit" Type="Edm.String" Nullable="false"/>
+<Property Name="CParty" Type="Edm.String" Nullable="false"/>
+<Property Name="ContNo" Type="Edm.Int32"/>
+<Property Name="Ccy" Type="Edm.String"/>
+<Property Name="CcyPair" Type="Edm.String"/>
+<Property Name="FxRate" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ChargeAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ContRef" Type="Edm.Int32"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0042">
+<Key>
+<PropertyRef Name="SequenceNo"/>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="SequenceNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BeneficiaryName1" Type="Edm.String"/>
+<Property Name="BeneficiaryName2" Type="Edm.String"/>
+<Property Name="BeneficiaryName3" Type="Edm.String"/>
+<Property Name="BeneficiaryName4" Type="Edm.String"/>
+<Property Name="BeneficiaryBank1" Type="Edm.String"/>
+<Property Name="BeneficiaryBank2" Type="Edm.String"/>
+<Property Name="BeneficiaryBank3" Type="Edm.String"/>
+<Property Name="BeneficiaryBank4" Type="Edm.String"/>
+<Property Name="BeneficiaryAccount" Type="Edm.String"/>
+<Property Name="BeneficiaryIBAN" Type="Edm.String"/>
+<Property Name="BeneficiaryEFTAlias" Type="Edm.String"/>
+<Property Name="BeneficiaryEFTCode" Type="Edm.String"/>
+<Property Name="BeneficiaryBSBNo" Type="Edm.String"/>
+<Property Name="BeneficiaryFedwire" Type="Edm.String"/>
+<Property Name="BeneficiaryABANo" Type="Edm.String"/>
+<Property Name="CorrespondentBank1" Type="Edm.String"/>
+<Property Name="CorrespondentBank2" Type="Edm.String"/>
+<Property Name="CorrespondentBank3" Type="Edm.String"/>
+<Property Name="CorrespondentBank4" Type="Edm.String"/>
+<Property Name="CorrespondentEFTAlias" Type="Edm.String"/>
+<Property Name="CorrespondentEFTCode" Type="Edm.String"/>
+<Property Name="CorrespondentABANo" Type="Edm.String"/>
+<Property Name="Comments1" Type="Edm.String"/>
+<Property Name="Comments2" Type="Edm.String"/>
+<Property Name="Comments3" Type="Edm.String"/>
+<Property Name="Comments4" Type="Edm.String"/>
+<Property Name="SwiftRef" Type="Edm.Int32"/>
+<Property Name="SwiftSendersReference" Type="Edm.String"/>
+<Property Name="SwiftRelatedReference" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="BeneficiarySortCode" Type="Edm.String"/>
+<Property Name="BeneficiaryBankCodeType" Type="Edm.String"/>
+<Property Name="BeneficiaryBankCode" Type="Edm.String"/>
+<Property Name="BeneficiaryAddBankCodeType" Type="Edm.String"/>
+<Property Name="BeneficiaryAddBankCode" Type="Edm.String"/>
+<Property Name="CorrespondentBankCodeType" Type="Edm.String"/>
+<Property Name="CorrespondentBankCode" Type="Edm.String"/>
+<Property Name="CorrespondentAddBankCodeType" Type="Edm.String"/>
+<Property Name="CorrespondentAddBankCode" Type="Edm.String"/>
+<Property Name="InstructedBeneficiaryName" Type="Edm.String"/>
+<Property Name="DebitBankInstructions" Type="Edm.String"/>
+<Property Name="CreditBankInstructions" Type="Edm.String"/>
+<Property Name="RegulatoryReporting" Type="Edm.String"/>
+<Property Name="ChargeBearer" Type="Edm.String"/>
+<Property Name="Purpose" Type="Edm.String"/>
+<Property Name="BranchCode" Type="Edm.String"/>
+<Property Name="TaxID" Type="Edm.String"/>
+<Property Name="EntityType" Type="Edm.String"/>
+<Property Name="Relationship" Type="Edm.String"/>
+<Property Name="FurtherCreditName" Type="Edm.String"/>
+<Property Name="FurtherCreditAccNo" Type="Edm.String"/>
+<NavigationProperty Name="vtCashTflowTemplateEftImgs" Type="Collection(FIS.Integrity.OData.Entity0043)"/>
+</EntityType>
+<EntityType Name="Entity0044">
+<Key>
+<PropertyRef Name="GLSeq"/>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GLSeq" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GLAccountNo" Type="Edm.String"/>
+<Property Name="DrCr" Type="Edm.String" Nullable="false"/>
+<Property Name="DealAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="DealCurr" Type="Edm.String"/>
+<Property Name="DealCommodityType" Type="Edm.String"/>
+<Property Name="Percentage" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Narration" Type="Edm.String"/>
+<Property Name="Source" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="OpenKeyItem" Type="Edm.String"/>
+<Property Name="CustomListMappingID" Type="Edm.Int16"/>
+</EntityType>
+<EntityType Name="Entity0046">
+<Key>
+<PropertyRef Name="CashTransID"/>
+</Key>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTypeIDDescription" Type="Edm.String"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="RuleDefinition" Type="Edm.String"/>
+<Property Name="WkSheetCategory" Type="Edm.String"/>
+<Property Name="Bunit" Type="Edm.String"/>
+<Property Name="ImportOnCurrentDay" Type="Edm.Int16"/>
+<Property Name="SeqNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ContNo" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="TheirBank" Type="Edm.String"/>
+<Property Name="MigrationStatus" Type="Edm.Int32"/>
+<Property Name="Comments" Type="Edm.String"/>
+<NavigationProperty Name="Entity0054" Type="FIS.Integrity.OData.Entity0054"/>
+<NavigationProperty Name="vtCashTranslateItems" Type="Collection(FIS.Integrity.OData.Entity0047)"/>
+<NavigationProperty Name="Entity0048" Type="FIS.Integrity.OData.Entity0048"/>
+<NavigationProperty Name="Entity0049" Type="Collection(FIS.Integrity.OData.Entity0049)"/>
+</EntityType>
+<EntityType Name="Entity0047">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="ItemID"/>
+</Key>
+<Property Name="ItemID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranslateCat" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TransValue" Type="Edm.String"/>
+<Property Name="ContNo" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0048">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="OurBank"/>
+</Key>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="GroupName" Type="Edm.String"/>
+<Property Name="CashPool" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="Entity0063" Type="FIS.Integrity.OData.Entity0063"/>
+</EntityType>
+<EntityType Name="Entity0049">
+<Key>
+<PropertyRef Name="CashTransID"/>
+<PropertyRef Name="TranMode"/>
+<PropertyRef Name="TranNo"/>
+<PropertyRef Name="TranType"/>
+</Key>
+<Property Name="CashTransID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0063">
+<Key>
+<PropertyRef Name="CashPool"/>
+<PropertyRef Name="GroupName"/>
+</Key>
+<Property Name="GroupName" Type="Edm.String" Nullable="false"/>
+<Property Name="CashPool" Type="Edm.String" Nullable="false"/>
+<Property Name="Descr" Type="Edm.String" Nullable="false"/>
+<Property Name="ReportCode" Type="Edm.String"/>
+<Property Name="LayoutID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="VersionKey" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0023" Type="FIS.Integrity.OData.Entity0023"/>
+</EntityType>
+<EntityType Name="Entity0053">
+<Key>
+<PropertyRef Name="PayRecTypeID"/>
+<PropertyRef Name="TranCode"/>
+<PropertyRef Name="TranMode"/>
+<PropertyRef Name="TranNo"/>
+<PropertyRef Name="TranType"/>
+</Key>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="TranCode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PayRecTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PayRecTypeIDDescription" Type="Edm.String"/>
+<Property Name="CategoryCode" Type="Edm.String" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0058">
+<Key>
+<PropertyRef Name="AccountNo"/>
+<PropertyRef Name="OurBank"/>
+</Key>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="AccountNo" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="NumberType" Type="Edm.Int32"/>
+<Property Name="NumberTypeDescription" Type="Edm.String"/>
+<Property Name="IsAPI" Type="Edm.Int16"/>
+</EntityType>
+<EntityType Name="Entity0059">
+<Key>
+<PropertyRef Name="AccountCode"/>
+<PropertyRef Name="RoutingMethodCode"/>
+</Key>
+<Property Name="AccountCode" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCode" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCodeValue" Type="Edm.String"/>
+<Property Name="IsStandard" Type="Edm.Int16"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0060">
+<Key>
+<PropertyRef Name="AccountCode"/>
+<PropertyRef Name="RoutingMethodCode"/>
+</Key>
+<Property Name="AccountCode" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCode" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCodeValue" Type="Edm.String"/>
+<Property Name="IsStandard" Type="Edm.Int16"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0061">
+<Key>
+<PropertyRef Name="MandateId"/>
+<PropertyRef Name="OurBank"/>
+</Key>
+<Property Name="MandateId" Type="Edm.Int32" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0068">
+<Key>
+<PropertyRef Name="ContactId"/>
+</Key>
+<Property Name="ContactId" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Cpty" Type="Edm.String" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DivName" Type="Edm.String"/>
+<Property Name="Address" Type="Edm.String"/>
+<Property Name="UseForLtr" Type="Edm.Int16"/>
+<Property Name="ContactName" Type="Edm.String"/>
+<Property Name="FaxNo" Type="Edm.String"/>
+<Property Name="Telex" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0064" Type="FIS.Integrity.OData.Entity0064"/>
+</EntityType>
+<EntityType Name="Entity0069">
+<Key>
+<PropertyRef Name="Cpty"/>
+<PropertyRef Name="ExpCode"/>
+<PropertyRef Name="ExpTypeID"/>
+<PropertyRef Name="LinkCpty"/>
+<PropertyRef Name="LinkExpCode"/>
+</Key>
+<Property Name="Cpty" Type="Edm.String" Nullable="false"/>
+<Property Name="ExpTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ExpCode" Type="Edm.String" Nullable="false"/>
+<Property Name="LinkCpty" Type="Edm.String" Nullable="false"/>
+<Property Name="LinkExpCode" Type="Edm.String" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0064" Type="FIS.Integrity.OData.Entity0064"/>
+</EntityType>
+<EntityType Name="Entity0070">
+<Key>
+<PropertyRef Name="Cpty"/>
+<PropertyRef Name="TranCode"/>
+<PropertyRef Name="TranMode"/>
+<PropertyRef Name="TranNo"/>
+</Key>
+<Property Name="Cpty" Type="Edm.String" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranCode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Confirmation" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0071">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Cpty" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleCurr" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleCommodityType" Type="Edm.String"/>
+<Property Name="PayReceive" Type="Edm.String" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranCode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String"/>
+<Property Name="BUnit" Type="Edm.String"/>
+<Property Name="SettleAgent" Type="Edm.String"/>
+<Property Name="TheirBank" Type="Edm.String" Nullable="false"/>
+<Property Name="SettleMethod" Type="Edm.String"/>
+<Property Name="FmtTranType" Type="Edm.String"/>
+<Property Name="PreFormatCode" Type="Edm.String"/>
+<Property Name="OurBank" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="RoutingMethod" Type="Edm.String"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="Entity0055" Type="FIS.Integrity.OData.Entity0055"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="Entity0065" Type="FIS.Integrity.OData.Entity0065"/>
+</EntityType>
+<EntityType Name="Entity0066">
+<Key>
+<PropertyRef Name="AccountCode"/>
+<PropertyRef Name="Counterparty"/>
+<PropertyRef Name="RoutingMethodCode"/>
+</Key>
+<Property Name="AccountCode" Type="Edm.String" Nullable="false"/>
+<Property Name="Counterparty" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCode" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCodeValue" Type="Edm.String"/>
+<Property Name="IsStandard" Type="Edm.Int16"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0067">
+<Key>
+<PropertyRef Name="AccountCode"/>
+<PropertyRef Name="Counterparty"/>
+<PropertyRef Name="RoutingMethodCode"/>
+</Key>
+<Property Name="AccountCode" Type="Edm.String" Nullable="false"/>
+<Property Name="Counterparty" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCode" Type="Edm.String" Nullable="false"/>
+<Property Name="RoutingMethodCodeValue" Type="Edm.String"/>
+<Property Name="IsStandard" Type="Edm.Int16"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0073">
+<Key>
+<PropertyRef Name="Curr"/>
+<PropertyRef Name="OpposingCurr"/>
+</Key>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="OpposingCurr" Type="Edm.String" Nullable="false"/>
+<Property Name="Factor" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DecFormatRate" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="Tolerance" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0074">
+<Key>
+<PropertyRef Name="Curr"/>
+<PropertyRef Name="RefBase"/>
+</Key>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="RefBase" Type="Edm.String" Nullable="false"/>
+<Property Name="Descr" Type="Edm.String"/>
+<Property Name="RateSetOffset" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Curve" Type="Edm.String"/>
+<Property Name="GLAlias" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0078">
+<Key>
+<PropertyRef Name="CountryCode"/>
+</Key>
+<Property Name="CountryCode" Type="Edm.String" Nullable="false"/>
+<Property Name="IBANLength" Type="Edm.Int32" Nullable="false"/>
+<Property Name="IBANStructure" Type="Edm.String"/>
+<Property Name="Regex" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0079">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Field" Type="Edm.String" Nullable="false"/>
+<Property Name="BUnit" Type="Edm.String"/>
+<Property Name="DBaseValue" Type="Edm.String"/>
+<Property Name="OutputValue" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IsDefault" Type="Edm.Int16"/>
+</EntityType>
+<EntityType Name="Entity0097">
+<Key>
+<PropertyRef Name="AttributeRef"/>
+<PropertyRef Name="TranMode"/>
+<PropertyRef Name="TranNo"/>
+<PropertyRef Name="TranType"/>
+</Key>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="AttributeRef" Type="Edm.Int32" Nullable="false"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0099">
+<Key>
+<PropertyRef Name="FieldCode"/>
+<PropertyRef Name="TranMode"/>
+<PropertyRef Name="TranNo"/>
+<PropertyRef Name="TranType"/>
+</Key>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FieldCode" Type="Edm.String" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="SequenceNo" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Value" Type="Edm.String"/>
+<Property Name="ModifyFlag" Type="Edm.Int16"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="EnumID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="ValueDateTime" Type="Edm.DateTimeOffset"/>
+<Property Name="ValueFloat" Type="Edm.Double"/>
+</EntityType>
+<EntityType Name="Entity0098">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="Curr" Type="Edm.String"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="Curve" Type="Edm.String"/>
+<Property Name="IRVolCurve" Type="Edm.String"/>
+<Property Name="MarginPoints" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0101">
+<Key>
+<PropertyRef Name="TranSettleID"/>
+</Key>
+<Property Name="TranSettleID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranCode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ExternalX" Type="Edm.Int16" Nullable="false"/>
+<Property Name="InternalX" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Compare" Type="Edm.Int16" Nullable="false"/>
+<Property Name="CheckX" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Authorize" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Settle" Type="Edm.Int16" Nullable="false"/>
+<Property Name="NoList" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Instruct" Type="Edm.Int16"/>
+<Property Name="AutoPrepare" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ActionDaysFX" Type="Edm.Int16"/>
+<Property Name="ActionDaysDomestic" Type="Edm.Int16"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0100">
+<Key>
+<PropertyRef Name="TranCode"/>
+<PropertyRef Name="TranMode"/>
+<PropertyRef Name="TranNo"/>
+<PropertyRef Name="TranType"/>
+</Key>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="TranCode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="LetterName" Type="Edm.String"/>
+<Property Name="NetSettleFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="NetSettleName" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0086">
+<Key>
+<PropertyRef Name="MessageID"/>
+</Key>
+<Property Name="MessageID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="OriginalDocID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="NumberOfTransactions" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TotalAmount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="CurrencyCode" Type="Edm.String"/>
+<Property Name="EquivalentAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="DealType" Type="Edm.String" Nullable="false"/>
+<Property Name="BusinessUnitCode" Type="Edm.String"/>
+<Property Name="Bank" Type="Edm.String"/>
+<Property Name="AccountCode" Type="Edm.String"/>
+<Property Name="AccountNumber" Type="Edm.String"/>
+<Property Name="ExecutionDate" Type="Edm.DateTimeOffset"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="SettlementMethod" Type="Edm.String"/>
+<Property Name="ProcessStatus" Type="Edm.Int32"/>
+<Property Name="ProcessStatusDescription" Type="Edm.String"/>
+<Property Name="PendingApprovalGroup" Type="Edm.Int32"/>
+<Property Name="BankReceivedStatus" Type="Edm.Int32"/>
+<Property Name="BankReceivedStatusDescription" Type="Edm.String"/>
+<Property Name="BankProcessStatus" Type="Edm.Int32"/>
+<Property Name="LastModifiedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="SentDocID" Type="Edm.Int32"/>
+<Property Name="RelatedMessageID" Type="Edm.Int32"/>
+<Property Name="ExportSequenceNumber" Type="Edm.Binary" MaxLength="16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="InputDate" Type="Edm.DateTimeOffset"/>
+<Property Name="PayRec" Type="Edm.Int16" Nullable="false"/>
+<Property Name="PayRecDescription" Type="Edm.String"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="Initiator" Type="Edm.String"/>
+<Property Name="Status" Type="Edm.Int32"/>
+<Property Name="StatusDescription" Type="Edm.String"/>
+<Property Name="EquivalentCurrencyCode" Type="Edm.String"/>
+<Property Name="MessageFormat" Type="Edm.Int32" Nullable="false"/>
+<Property Name="MessageFormatDescription" Type="Edm.String"/>
+<Property Name="CurrencyList" Type="Edm.String"/>
+<Property Name="BusinessUnitList" Type="Edm.String"/>
+<Property Name="ExecutionDateList" Type="Edm.String"/>
+<Property Name="AccountList" Type="Edm.String"/>
+<Property Name="AccountNumberList" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="HasAlternatePayload" Type="Edm.Int16"/>
+<Property Name="CheckListProcessId" Type="Edm.Int32"/>
+<Property Name="IsTreasuryPayment" Type="Edm.Int16" Nullable="false"/>
+<Property Name="AllowImportWhereSettlementLinkIsMissing" Type="Edm.Int16"/>
+<Property Name="PendingApprovalThreeSKeySignatureType" Type="Edm.Int32"/>
+<Property Name="PendingApprovalThreeSKeySignatureTypeDescription" Type="Edm.String"/>
+<Property Name="CptyName" Type="Edm.String"/>
+<Property Name="CptyBankAccountNumber" Type="Edm.String"/>
+<Property Name="ProcessBankFile" Type="Edm.Int16"/>
+<Property Name="TransformFileDocID" Type="Edm.Int32"/>
+<Property Name="TieredApprovalRuleID" Type="Edm.Int32"/>
+<Property Name="CheckListProcessStage" Type="Edm.Int32"/>
+<Property Name="CheckListProcessStageDescription" Type="Edm.String"/>
+<Property Name="ScreeningStatus" Type="Edm.Int32"/>
+<Property Name="ScreeningFilePath" Type="Edm.String"/>
+<Property Name="ScreeningFileExportDate" Type="Edm.DateTimeOffset"/>
+<NavigationProperty Name="vtPmtDocument_OriginalDoc" Type="FIS.Integrity.OData.Entity0083"/>
+<NavigationProperty Name="vtPmtDocument_SentDoc" Type="FIS.Integrity.OData.Entity0083"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="Entity0096" Type="FIS.Integrity.OData.Entity0096"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="Entity0087" Type="Collection(FIS.Integrity.OData.Entity0087)"/>
+<NavigationProperty Name="vtPmtMessagePendingApps" Type="Collection(FIS.Integrity.OData.Entity0088)"/>
+<NavigationProperty Name="vtPmtBatches" Type="Collection(FIS.Integrity.OData.Entity0081)"/>
+</EntityType>
+<EntityType Name="Entity0083">
+<Key>
+<PropertyRef Name="ID"/>
+</Key>
+<Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DocumentID" Type="Edm.String" Nullable="false"/>
+<Property Name="DocumentName" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="HashData" Type="Edm.String"/>
+<Property Name="NormalizedHashData" Type="Edm.String"/>
+<Property Name="RawHashData" Type="Edm.String"/>
+</EntityType>
+<EntityType Name="Entity0087">
+<Key>
+<PropertyRef Name="ID"/>
+</Key>
+<Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="MessageID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="UserID" Type="Edm.String" Nullable="false"/>
+<Property Name="ActionType" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ActionTypeDescription" Type="Edm.String"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="GroupID" Type="Edm.Int32"/>
+<Property Name="ModifiedDateTime" Type="Edm.DateTimeOffset"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="ThreeSKeySignature" Type="Edm.String"/>
+<Property Name="ThreeSKeySignatureType" Type="Edm.Int32"/>
+<Property Name="ThreeSKeySignatureTypeDescription" Type="Edm.String"/>
+<Property Name="SetNo" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0088">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="MessageID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="SetNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GroupID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ThreeSKeySignatureType" Type="Edm.Int32"/>
+<Property Name="ThreeSKeySignatureTypeDescription" Type="Edm.String"/>
+</EntityType>
+<EntityType Name="Entity0081">
+<Key>
+<PropertyRef Name="BatchID"/>
+</Key>
+<Property Name="BatchID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="MessageID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BusinessUnitCode" Type="Edm.String"/>
+<Property Name="CurrencyCode" Type="Edm.String"/>
+<Property Name="AccountNumber" Type="Edm.String"/>
+<Property Name="AccountCode" Type="Edm.String"/>
+<Property Name="ExecutionDate" Type="Edm.DateTimeOffset"/>
+<Property Name="NumberOfTransactions" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TotalAmount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="EquivalentAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="EquivalentCurrencyCode" Type="Edm.String"/>
+<Property Name="BatchBooking" Type="Edm.Int16"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IsPSRRejected" Type="Edm.Int16"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="vtPmtPayments" Type="Collection(FIS.Integrity.OData.Entity0089)"/>
+</EntityType>
+<EntityType Name="Entity0089">
+<Key>
+<PropertyRef Name="PaymentID"/>
+</Key>
+<Property Name="PaymentID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BatchID" Type="Edm.Int32"/>
+<Property Name="CurrencyCode" Type="Edm.String"/>
+<Property Name="EquivalentCurrencyCode" Type="Edm.String"/>
+<Property Name="BusinessUnitCode" Type="Edm.String"/>
+<Property Name="AccountNumber" Type="Edm.String"/>
+<Property Name="AccountCode" Type="Edm.String"/>
+<Property Name="PayRec" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PayRecDescription" Type="Edm.String"/>
+<Property Name="Amount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="EquivalentAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ExecutionDate" Type="Edm.DateTimeOffset"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="CptyName" Type="Edm.String"/>
+<Property Name="CptyBankAccountNumber" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="CounterpartyBankName" Type="Edm.String"/>
+<Property Name="CounterpartyBankBIC" Type="Edm.String"/>
+<Property Name="IsPSRRejected" Type="Edm.Int16"/>
+<Property Name="CheckListHitStatus" Type="Edm.Int32"/>
+<Property Name="CheckListHitStatusDescription" Type="Edm.String"/>
+<Property Name="CheckListHitDetails" Type="Edm.String"/>
+<Property Name="UETR" Type="Edm.String"/>
+<Property Name="SettleRef" Type="Edm.Int32"/>
+<Property Name="SequenceNo" Type="Edm.Int32"/>
+<Property Name="InstructionId" Type="Edm.String"/>
+<Property Name="EndToEndId" Type="Edm.String"/>
+<Property Name="LatestPSRStatus" Type="Edm.Int32"/>
+<Property Name="LatestPSRStatusDescription" Type="Edm.String"/>
+<Property Name="RmtInf" Type="Edm.String"/>
+<Property Name="EntityId" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="IsDeletedPayment" Type="Edm.Int16" Nullable="false"/>
+<Property Name="CptyId" Type="Edm.String"/>
+<Property Name="CptyCountry" Type="Edm.String"/>
+<Property Name="CheckListHitProcessAction" Type="Edm.Int32"/>
+<Property Name="CheckListHitProcessActionDescription" Type="Edm.String"/>
+<Property Name="CptyBankCountry" Type="Edm.String"/>
+<Property Name="CheckListHitType" Type="Edm.Int32"/>
+<Property Name="CheckListHitTypeDescription" Type="Edm.String"/>
+<Property Name="CheckListHitResolvedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="CheckListHitResolvedBy" Type="Edm.String"/>
+<Property Name="PSRRejectedBy" Type="Edm.String"/>
+<Property Name="PSRRejectedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="ExportSisIDHistoryProcessingId" Type="Edm.Int32"/>
+<Property Name="GLRef" Type="Edm.Int32"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+</EntityType>
+<EntityType Name="Entity0080">
+<Key>
+<PropertyRef Name="ID"/>
+</Key>
+<Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DocumentID" Type="Edm.String" Nullable="false"/>
+<Property Name="DocumentName" Type="Edm.String"/>
+<Property Name="FileType" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FileTypeDescription" Type="Edm.String"/>
+<Property Name="MessageID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0082">
+<Key>
+<PropertyRef Name="CashFlowID"/>
+</Key>
+<Property Name="CashFlowID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BusinessUnitCode" Type="Edm.String" Nullable="false"/>
+<Property Name="ValueDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="CurrencyCode" Type="Edm.String" Nullable="false"/>
+<Property Name="PayRec" Type="Edm.Int16"/>
+<Property Name="PayRecDescription" Type="Edm.String"/>
+<Property Name="Amount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="DealType" Type="Edm.String" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="CptyCode" Type="Edm.String"/>
+<Property Name="CptyBank" Type="Edm.String"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ExcludeForecast" Type="Edm.Int16"/>
+<Property Name="ExcludeExpected" Type="Edm.Int16"/>
+<Property Name="ExcludeCurrent" Type="Edm.Int16"/>
+<Property Name="MessageID" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="BatchID" Type="Edm.Int32"/>
+<Property Name="PaymentID" Type="Edm.Int32"/>
+<Property Name="MatchedRef" Type="Edm.Int32"/>
+<Property Name="MatchedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="OriginalAmount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="ProcessStatus" Type="Edm.Int32"/>
+<Property Name="ProcessStatusDescription" Type="Edm.String"/>
+<NavigationProperty Name="Entity0013" Type="FIS.Integrity.OData.Entity0013"/>
+<NavigationProperty Name="Entity0057" Type="FIS.Integrity.OData.Entity0057"/>
+<NavigationProperty Name="Entity0072" Type="FIS.Integrity.OData.Entity0072"/>
+<NavigationProperty Name="Entity0065" Type="FIS.Integrity.OData.Entity0065"/>
+<NavigationProperty Name="Entity0081" Type="FIS.Integrity.OData.Entity0081"/>
+</EntityType>
+<EntityType Name="Entity0084">
+<Key>
+<PropertyRef Name="RuleID"/>
+</Key>
+<Property Name="RuleID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Name" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="Priority" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Deactivated" Type="Edm.Int16" Nullable="false"/>
+<Property Name="TransformationName" Type="Edm.String"/>
+<Property Name="TransformationCategory" Type="Edm.Int32"/>
+<Property Name="PaymentMessageFormat" Type="Edm.Int32"/>
+<Property Name="PaymentMessageFormatDescription" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" MaxLength="16"/>
+<Property Name="ProcessBankFile" Type="Edm.Int16"/>
+<Property Name="PreProcessScript" Type="Edm.String"/>
+<Property Name="PostProcessScript" Type="Edm.String"/>
+<Property Name="GenerateUETR" Type="Edm.Int16"/>
+<NavigationProperty Name="vtPmtFormattingRuleDetails" Type="Collection(FIS.Integrity.OData.Entity0085)"/>
+</EntityType>
+<EntityType Name="Entity0085">
+<Key>
+<PropertyRef Name="DetailID"/>
+</Key>
+<Property Name="DetailID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="RuleID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FieldName" Type="Edm.String"/>
+<Property Name="Operator" Type="Edm.String"/>
+<Property Name="Value" Type="Edm.String"/>
+<Property Name="LogicalOperator" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0090">
+<Key>
+<PropertyRef Name="PSRID"/>
+</Key>
+<Property Name="PSRID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Reference" Type="Edm.String" Nullable="false"/>
+<Property Name="MessageFormat" Type="Edm.String"/>
+<Property Name="MessageBIC" Type="Edm.String"/>
+<Property Name="MessageOtherID" Type="Edm.String"/>
+<Property Name="MessageScheme" Type="Edm.String"/>
+<Property Name="DocumentID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="InputDate" Type="Edm.DateTimeOffset"/>
+<Property Name="CreationDate" Type="Edm.DateTimeOffset"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="vtPmtPsrMessages" Type="Collection(FIS.Integrity.OData.Entity0093)"/>
+</EntityType>
+<EntityType Name="Entity0093">
+<Key>
+<PropertyRef Name="PSRMessageID"/>
+</Key>
+<Property Name="PSRMessageID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PSRID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PMTMessageID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Status" Type="Edm.Int32"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Entity0086" Type="FIS.Integrity.OData.Entity0086"/>
+<NavigationProperty Name="vtPmtPsrBatchs" Type="Collection(FIS.Integrity.OData.Entity0091)"/>
+</EntityType>
+<EntityType Name="Entity0091">
+<Key>
+<PropertyRef Name="PSRBatchID"/>
+</Key>
+<Property Name="PSRBatchID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PMTBatchID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Status" Type="Edm.Int32"/>
+<Property Name="StatusDescription" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="PSRMessageID" Type="Edm.Int32" Nullable="false"/>
+<NavigationProperty Name="Entity0081" Type="FIS.Integrity.OData.Entity0081"/>
+<NavigationProperty Name="vtPmtPsrPayments" Type="Collection(FIS.Integrity.OData.Entity0094)"/>
+</EntityType>
+<EntityType Name="Entity0094">
+<Key>
+<PropertyRef Name="PSRPaymentID"/>
+</Key>
+<Property Name="PSRPaymentID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PMTPaymentID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Status" Type="Edm.Int32"/>
+<Property Name="StatusDescription" Type="Edm.String"/>
+<Property Name="AccountServiceReference" Type="Edm.String"/>
+<Property Name="ClearingSystemReference" Type="Edm.String"/>
+<Property Name="CurrencyCode" Type="Edm.String"/>
+<Property Name="Amount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ValueDate" Type="Edm.DateTimeOffset"/>
+<Property Name="AccountName" Type="Edm.String"/>
+<Property Name="IBAN" Type="Edm.String"/>
+<Property Name="AccountBIC" Type="Edm.String"/>
+<Property Name="AccountRouteID" Type="Edm.String"/>
+<Property Name="AccountOtherID" Type="Edm.String"/>
+<Property Name="CounterpartyBankBIC" Type="Edm.String"/>
+<Property Name="CounterpartyBankRouteID" Type="Edm.String"/>
+<Property Name="CounterpartyBankOtherID" Type="Edm.String"/>
+<Property Name="CounterpartyName" Type="Edm.String"/>
+<Property Name="CounterpartyIBAN" Type="Edm.String"/>
+<Property Name="CounterpartyOtherID" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="AccountID" Type="Edm.String"/>
+<Property Name="PSRBatchID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="MessageSource" Type="Edm.String"/>
+<Property Name="MessageDateTime" Type="Edm.DateTimeOffset"/>
+<NavigationProperty Name="Entity0089" Type="FIS.Integrity.OData.Entity0089"/>
+<NavigationProperty Name="Entity0092" Type="FIS.Integrity.OData.Entity0092"/>
+<NavigationProperty Name="Entity0095" Type="FIS.Integrity.OData.Entity0095"/>
+</EntityType>
+<EntityType Name="Entity0092">
+<Key>
+<PropertyRef Name="ID"/>
+</Key>
+<Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PSRPaymentID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="FeeSeqNo" Type="Edm.Int32"/>
+<Property Name="FeeInterbankBIC" Type="Edm.String"/>
+<Property Name="FeeChargeBearer" Type="Edm.String"/>
+<Property Name="FeeCurrency" Type="Edm.String"/>
+<Property Name="FeeAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="FeeFXRate" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="FeeProcDateTime" Type="Edm.DateTimeOffset"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0095">
+<Key>
+<PropertyRef Name="PSRReasonID"/>
+</Key>
+<Property Name="PSRReasonID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PSRMessageID" Type="Edm.Int32"/>
+<Property Name="PSRBatchID" Type="Edm.Int32"/>
+<Property Name="PSRPaymentID" Type="Edm.Int32"/>
+<Property Name="Reason" Type="Edm.String"/>
+<Property Name="AdditionalInfo" Type="Edm.String"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+</EntityType>
+<EntityType Name="Entity0021">
+<Key>
+<PropertyRef Name="DealDate"/>
+<PropertyRef Name="PayRecTypeID"/>
+<PropertyRef Name="TranCode"/>
+<PropertyRef Name="TranMode"/>
+<PropertyRef Name="TranNo"/>
+<PropertyRef Name="TranType"/>
+<PropertyRef Name="ValueDate"/>
+</Key>
+<Property Name="ValueDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="TranNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranMode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TranType" Type="Edm.String" Nullable="false"/>
+<Property Name="TranCode" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PayRecTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DealDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="PayRecTypeIDDescription" Type="Edm.String"/>
+<Property Name="ActionDate" Type="Edm.DateTimeOffset"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="Amount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="CreateUserID" Type="Edm.String" Nullable="false"/>
+</EntityType>
+<EntityType Name="Entity0022">
+<Key>
+<PropertyRef Name="ContNo"/>
+<PropertyRef Name="Sequence"/>
+</Key>
+<Property Name="ContNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Sequence" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CustNo" Type="Edm.String"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="TaxNo" Type="Edm.String"/>
+<Property Name="Payee" Type="Edm.String"/>
+<Property Name="PayeeAmt" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="PayeeAccountNo" Type="Edm.String"/>
+<Property Name="PayeeBankName" Type="Edm.String"/>
+<Property Name="PayeeBankBranch" Type="Edm.String"/>
+<Property Name="PayeeContact" Type="Edm.String"/>
+<Property Name="PayeeCharges" Type="Edm.String"/>
+</EntityType>
+<EntityType Name="Entity0040">
+<Key>
+<PropertyRef Name="ApproverID"/>
+<PropertyRef Name="ImageNo"/>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ImageNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ApproverID" Type="Edm.String" Nullable="false"/>
+<Property Name="Status" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Comments" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="GroupName" Type="Edm.String"/>
+<Property Name="Sequence" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0043">
+<Key>
+<PropertyRef Name="ImageNo"/>
+<PropertyRef Name="SequenceNo"/>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ImageNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="SequenceNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="BeneficiaryName1" Type="Edm.String"/>
+<Property Name="BeneficiaryName2" Type="Edm.String"/>
+<Property Name="BeneficiaryName3" Type="Edm.String"/>
+<Property Name="BeneficiaryName4" Type="Edm.String"/>
+<Property Name="BeneficiaryBank1" Type="Edm.String"/>
+<Property Name="BeneficiaryBank2" Type="Edm.String"/>
+<Property Name="BeneficiaryBank3" Type="Edm.String"/>
+<Property Name="BeneficiaryBank4" Type="Edm.String"/>
+<Property Name="BeneficiaryAccount" Type="Edm.String"/>
+<Property Name="BeneficiaryIBAN" Type="Edm.String"/>
+<Property Name="BeneficiaryEFTAlias" Type="Edm.String"/>
+<Property Name="BeneficiaryEFTCode" Type="Edm.String"/>
+<Property Name="BeneficiaryBSBNo" Type="Edm.String"/>
+<Property Name="BeneficiaryFedwire" Type="Edm.String"/>
+<Property Name="BeneficiaryABANo" Type="Edm.String"/>
+<Property Name="CorrespondentBank1" Type="Edm.String"/>
+<Property Name="CorrespondentBank2" Type="Edm.String"/>
+<Property Name="CorrespondentBank3" Type="Edm.String"/>
+<Property Name="CorrespondentBank4" Type="Edm.String"/>
+<Property Name="CorrespondentEFTAlias" Type="Edm.String"/>
+<Property Name="CorrespondentEFTCode" Type="Edm.String"/>
+<Property Name="CorrespondentABANo" Type="Edm.String"/>
+<Property Name="Comments1" Type="Edm.String"/>
+<Property Name="Comments2" Type="Edm.String"/>
+<Property Name="Comments3" Type="Edm.String"/>
+<Property Name="Comments4" Type="Edm.String"/>
+<Property Name="SwiftRef" Type="Edm.Int32"/>
+<Property Name="SwiftSendersReference" Type="Edm.String"/>
+<Property Name="SwiftRelatedReference" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="BeneficiarySortCode" Type="Edm.String"/>
+<Property Name="BeneficiaryBankCodeType" Type="Edm.String"/>
+<Property Name="BeneficiaryBankCode" Type="Edm.String"/>
+<Property Name="BeneficiaryAddBankCodeType" Type="Edm.String"/>
+<Property Name="BeneficiaryAddBankCode" Type="Edm.String"/>
+<Property Name="CorrespondentBankCodeType" Type="Edm.String"/>
+<Property Name="CorrespondentBankCode" Type="Edm.String"/>
+<Property Name="CorrespondentAddBankCodeType" Type="Edm.String"/>
+<Property Name="CorrespondentAddBankCode" Type="Edm.String"/>
+<Property Name="InstructedBeneficiaryName" Type="Edm.String"/>
+<Property Name="DebitBankInstructions" Type="Edm.String"/>
+<Property Name="CreditBankInstructions" Type="Edm.String"/>
+<Property Name="RegulatoryReporting" Type="Edm.String"/>
+<Property Name="ChargeBearer" Type="Edm.String"/>
+<Property Name="Purpose" Type="Edm.String"/>
+<Property Name="BranchCode" Type="Edm.String"/>
+<Property Name="TaxID" Type="Edm.String"/>
+<Property Name="EntityType" Type="Edm.String"/>
+<Property Name="Relationship" Type="Edm.String"/>
+<Property Name="FurtherCreditName" Type="Edm.String"/>
+<Property Name="FurtherCreditAccNo" Type="Edm.String"/>
+</EntityType>
+<EntityType Name="Entity0045">
+<Key>
+<PropertyRef Name="GLSeq"/>
+<PropertyRef Name="ImageNo"/>
+<PropertyRef Name="TemplateID"/>
+</Key>
+<Property Name="TemplateID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ImageNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GLSeq" Type="Edm.Int32" Nullable="false"/>
+<Property Name="GLAccountNo" Type="Edm.String"/>
+<Property Name="DrCr" Type="Edm.String" Nullable="false"/>
+<Property Name="DealAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="DealCurr" Type="Edm.String"/>
+<Property Name="DealCommodityType" Type="Edm.String"/>
+<Property Name="Percentage" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="Narration" Type="Edm.String"/>
+<Property Name="Source" Type="Edm.String"/>
+<Property Name="OpenKeyItem" Type="Edm.String"/>
+<Property Name="AuthoriseID" Type="Edm.Int32"/>
+<Property Name="CustomListMappingID" Type="Edm.Int16"/>
+</EntityType>
+<EntityType Name="Entity0050">
+<Key>
+<PropertyRef Name="Code"/>
+<PropertyRef Name="UserID"/>
+</Key>
+<Property Name="Code" Type="Edm.String" Nullable="false"/>
+<Property Name="UserID" Type="Edm.String" Nullable="false"/>
+<Property Name="Description" Type="Edm.String"/>
+<Property Name="ViewType" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ViewTypeDescription" Type="Edm.String"/>
+<Property Name="DefaultView" Type="Edm.Int16"/>
+<Property Name="CustomGap" Type="Edm.Int16"/>
+<Property Name="DateFromType" Type="Edm.Int32"/>
+<Property Name="DateFromSpecific" Type="Edm.DateTimeOffset"/>
+<Property Name="DateFromRelative" Type="Edm.Int32"/>
+<Property Name="DateToType" Type="Edm.Int32"/>
+<Property Name="DateToSpecific" Type="Edm.DateTimeOffset"/>
+<Property Name="DateToRelative" Type="Edm.Int32"/>
+<Property Name="DateGap" Type="Edm.Int32"/>
+<Property Name="DisplayPoolGroup" Type="Edm.String"/>
+<Property Name="DisplayCurr" Type="Edm.String"/>
+<Property Name="DisplayValue" Type="Edm.Int32"/>
+<Property Name="DisplayZeroValue" Type="Edm.Int16"/>
+<Property Name="DisplaySummary" Type="Edm.Int16"/>
+<Property Name="DisplayIncludeUnMapped" Type="Edm.Int16"/>
+<Property Name="DisplayViewType" Type="Edm.Int32"/>
+<Property Name="PeriodType" Type="Edm.Int32"/>
+<Property Name="JournalSet" Type="Edm.Int32"/>
+<Property Name="GapDay" Type="Edm.Int32"/>
+<Property Name="GapWeek" Type="Edm.Int32"/>
+<Property Name="GapMonth" Type="Edm.Int32"/>
+<Property Name="GapQuarter" Type="Edm.Int32"/>
+<Property Name="GapYear" Type="Edm.Int32"/>
+<Property Name="GapPeriod" Type="Edm.Int32"/>
+<Property Name="DbVersion" Type="Edm.Binary" Nullable="false" MaxLength="16"/>
+<Property Name="AuditRecordId" Type="Edm.Int32"/>
+<Property Name="DisplayReportCode" Type="Edm.String"/>
+<Property Name="IncludeDealRequest" Type="Edm.Int16"/>
+<Property Name="RevalRateTypeID" Type="Edm.Int32"/>
+</EntityType>
+<EntityType Name="Entity0051">
+<Key>
+<PropertyRef Name="HistID"/>
+</Key>
+<Property Name="HistID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="HistName" Type="Edm.String" Nullable="false"/>
+<Property Name="FromDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="CreatedDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="PoolGroup" Type="Edm.String" Nullable="false"/>
+<Property Name="CashPool" Type="Edm.String"/>
+<Property Name="CashAccount" Type="Edm.String"/>
+<Property Name="CurrentCurr" Type="Edm.String"/>
+<Property Name="DisplayCurr" Type="Edm.String"/>
+<Property Name="DisplayValue" Type="Edm.Byte" Nullable="false"/>
+<Property Name="DisplayZeroValues" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Summary" Type="Edm.Int16" Nullable="false"/>
+<NavigationProperty Name="vtCashWsHistOpenbals" Type="Collection(FIS.Integrity.OData.Entity0052)"/>
+</EntityType>
+<EntityType Name="Entity0052">
+<Key>
+<PropertyRef Name="HistID"/>
+<PropertyRef Name="RecordKey"/>
+</Key>
+<Property Name="HistID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="RecordKey" Type="Edm.String" Nullable="false"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="OpeningBalance" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+</EntityType>
+<EntityType Name="Entity0056">
+<Key>
+<PropertyRef Name="ContNo"/>
+<PropertyRef Name="StatusRef"/>
+</Key>
+<Property Name="ContNo" Type="Edm.Int32" Nullable="false"/>
+<Property Name="StatusRef" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ContLeg" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DealDate" Type="Edm.DateTimeOffset"/>
+<Property Name="ValueDate" Type="Edm.DateTimeOffset"/>
+<Property Name="PayRecTypeID" Type="Edm.Int32" Nullable="false"/>
+<Property Name="PayRecTypeIDDescription" Type="Edm.String"/>
+<Property Name="Amount" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="Curr" Type="Edm.String" Nullable="false"/>
+<Property Name="CommodityType" Type="Edm.String"/>
+<Property Name="OurBankPay" Type="Edm.String"/>
+<Property Name="OurBankRec" Type="Edm.String"/>
+<Property Name="TheirBankPay" Type="Edm.String"/>
+<Property Name="TheirBankRec" Type="Edm.String"/>
+<Property Name="SettleMethodCode" Type="Edm.String"/>
+<Property Name="PreFormatCode" Type="Edm.String"/>
+<Property Name="NettingTranCategory" Type="Edm.Int32" Nullable="false"/>
+<Property Name="NettingTranCategoryDescription" Type="Edm.String"/>
+<Property Name="HedgeExposureTypeID" Type="Edm.Int32"/>
+<Property Name="HedgeExposureTypeIDDescription" Type="Edm.String"/>
+<Property Name="Reference" Type="Edm.String"/>
+<Property Name="MatchedNetRef" Type="Edm.Int32" Nullable="false"/>
+<Property Name="MatchedNetDate" Type="Edm.DateTimeOffset"/>
+<Property Name="ConfirmedStatus" Type="Edm.Int16" Nullable="false"/>
+<Property Name="IntercoTFlowXRef" Type="Edm.Int32"/>
+<Property Name="CurrentAcctContNo" Type="Edm.Int32"/>
+<Property Name="CurrentAcctStatusRef" Type="Edm.Int32"/>
+<Property Name="HedgeRequired" Type="Edm.Int16" Nullable="false"/>
+<Property Name="GLRequired" Type="Edm.Int16" Nullable="false"/>
+<Property Name="Actioned" Type="Edm.Int16" Nullable="false"/>
+<Property Name="ActionedDate" Type="Edm.DateTimeOffset"/>
+<Property Name="TemplateID" Type="Edm.Int32"/>
+<Property Name="DataSource" Type="Edm.String"/>
+<Property Name="ProcessMLNInBOfficeFlag" Type="Edm.Int16" Nullable="false"/>
+<Property Name="SpotRate" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ForwardPoints" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ForwardRate" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="AddendaCode" Type="Edm.String"/>
+<Property Name="BuySellTypeID" Type="Edm.Int32"/>
+<Property Name="BuySellTypeIDDescription" Type="Edm.String"/>
+<Property Name="BuyCurr" Type="Edm.String"/>
+<Property Name="BuyAmount" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="ExternalSystemXRef" Type="Edm.String"/>
+<Property Name="PortRunRefPay" Type="Edm.Int32"/>
+<Property Name="PortRunRefRec" Type="Edm.Int32"/>
+<Property Name="CreatedFromMatch" Type="Edm.Int16" Nullable="false"/>
+<Property Name="MatchedStatus" Type="Edm.Int16"/>
+<Property Name="RoutingMethodCode" Type="Edm.String"/>
+<Property Name="CashFlowDate" Type="Edm.DateTimeOffset"/>
+<Property Name="CreatedForRecDiff" Type="Edm.Int16"/>
+<NavigationProperty Name="Entity0036" Type="FIS.Integrity.OData.Entity0036"/>
+</EntityType>
+<EntityType Name="Entity0075">
+<Key>
+<PropertyRef Name="Id"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="Code" Type="Edm.String" Nullable="false"/>
+<Property Name="FromDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="ToDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="ViewType" Type="Edm.Int32"/>
+<Property Name="CreatedDate" Type="Edm.DateTimeOffset" Nullable="false"/>
+<Property Name="PoolGroupCode" Type="Edm.String" Nullable="false"/>
+<Property Name="CurrencyCode" Type="Edm.String"/>
+<Property Name="PoolCode" Type="Edm.String"/>
+<Property Name="BankAccountCode" Type="Edm.String"/>
+<Property Name="DisplayCurr" Type="Edm.String"/>
+<Property Name="DisplayValue" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DisplayZeroValues" Type="Edm.Int16" Nullable="false"/>
+</EntityType>
+<EntityType Name="Entity0076">
+<Key>
+<PropertyRef Name="Id"/>
+<PropertyRef Name="SequenceNumber"/>
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+<Property Name="SequenceNumber" Type="Edm.Int32" Nullable="false"/>
+<Property Name="CurrencyCode" Type="Edm.String" Nullable="false"/>
+<Property Name="PoolCode" Type="Edm.String"/>
+<Property Name="BankAccountCode" Type="Edm.String"/>
+<Property Name="CategoryCode" Type="Edm.String" Nullable="false"/>
+<Property Name="CategoryDesc" Type="Edm.String" Nullable="false"/>
+<Property Name="ForecastAmt" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="ActualAmt" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="AdjustedForecastAmt" Type="Edm.Decimal" Nullable="false" Scale="Variable"/>
+<Property Name="BankAmt" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="DiffBankAndForecastAmt" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="DiffActualAndForecastAmt" Type="Edm.Decimal" Scale="Variable"/>
+<Property Name="DiffBankAndActualAmt" Type="Edm.Decimal" Scale="Variable"/>
+</EntityType>
+<EntityType Name="Entity0026">
+<Key>
+<PropertyRef Name="OurBank"/>
+<PropertyRef Name="UserID"/>
+</Key>
+<Property Name="UserID" Type="Edm.String" Nullable="false"/>
+<Property Name="OurBank" Type="Edm.String" Nullable="false"/>
+</EntityType>
+<EntityContainer Name="IntegrityODataContainer">
+<EntitySet Name="AddressCodes" EntityType="FIS.Integrity.OData.Entity0001"/>
+<EntitySet Name="Attribute" EntityType="FIS.Integrity.OData.Entity0002"/>
+<EntitySet Name="AutoFundingBank" EntityType="FIS.Integrity.OData.Entity0003">
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+<NavigationPropertyBinding Path="Entity0062" Target="Entity0062"/>
+</EntitySet>
+<EntitySet Name="Entity0057" EntityType="FIS.Integrity.OData.Entity0057"/>
+<EntitySet Name="Entity0062" EntityType="FIS.Integrity.OData.Entity0062"/>
+<EntitySet Name="Bank" EntityType="FIS.Integrity.OData.Entity0004">
+<NavigationPropertyBinding Path="Entity0001" Target="Entity0001"/>
+<NavigationPropertyBinding Path="Entity0010" Target="Entity0010"/>
+</EntitySet>
+<EntitySet Name="Entity0001" EntityType="FIS.Integrity.OData.Entity0001"/>
+<EntitySet Name="Entity0010" EntityType="FIS.Integrity.OData.Entity0010"/>
+<EntitySet Name="BankAcctBalDetail" EntityType="FIS.Integrity.OData.Entity0005">
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+</EntitySet>
+<EntitySet Name="BankAcctBalHeader" EntityType="FIS.Integrity.OData.Entity0006">
+<NavigationPropertyBinding Path="vtBankAcctBalDetails" Target="vtBankAcctBalDetails"/>
+<NavigationPropertyBinding Path="Entity0011" Target="Entity0011"/>
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+</EntitySet>
+<EntitySet Name="Entity0011" EntityType="FIS.Integrity.OData.Entity0011"/>
+<EntitySet Name="vtBankAcctBalDetails" EntityType="FIS.Integrity.OData.Entity0005"/>
+<EntitySet Name="BankBranch" EntityType="FIS.Integrity.OData.Entity0007">
+<NavigationPropertyBinding Path="Entity0001" Target="Entity0001"/>
+<NavigationPropertyBinding Path="vtBankBranchRoutingMethods" Target="vtBankBranchRoutingMethods"/>
+</EntitySet>
+<EntitySet Name="vtBankBranchRoutingMethods" EntityType="FIS.Integrity.OData.Entity0008"/>
+<EntitySet Name="BankTrans" EntityType="FIS.Integrity.OData.Entity0011">
+<NavigationPropertyBinding Path="Entity0054" Target="Entity0054"/>
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+</EntitySet>
+<EntitySet Name="Entity0054" EntityType="FIS.Integrity.OData.Entity0054"/>
+<EntitySet Name="BankBranchRoutingMethod" EntityType="FIS.Integrity.OData.Entity0008">
+<NavigationPropertyBinding Path="Entity0010" Target="Entity0010"/>
+</EntitySet>
+<EntitySet Name="BankRoutingMethod" EntityType="FIS.Integrity.OData.Entity0010"/>
+<EntitySet Name="BankMovement" EntityType="FIS.Integrity.OData.Entity0009">
+<NavigationPropertyBinding Path="Entity0055" Target="Entity0055"/>
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+</EntitySet>
+<EntitySet Name="Entity0072" EntityType="FIS.Integrity.OData.Entity0072"/>
+<EntitySet Name="Entity0055" EntityType="FIS.Integrity.OData.Entity0055"/>
+<EntitySet Name="BankTransCashBook" EntityType="FIS.Integrity.OData.Entity0012">
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+</EntitySet>
+<EntitySet Name="Bunit" EntityType="FIS.Integrity.OData.Entity0013">
+<NavigationPropertyBinding Path="Entity0001" Target="Entity0001"/>
+<NavigationPropertyBinding Path="vtBunitConsols" Target="vtBunitConsols"/>
+<NavigationPropertyBinding Path="vtBunitPorts" Target="vtBunitPorts"/>
+<NavigationPropertyBinding Path="vtBunitSettles" Target="vtBunitSettles"/>
+<NavigationPropertyBinding Path="Entity0055" Target="Entity0055"/>
+<NavigationPropertyBinding Path="vtExps" Target="vtExps"/>
+<NavigationPropertyBinding Path="vtLocalCurrency" Target="vtLocalCurrency"/>
+<NavigationPropertyBinding Path="vtParentBUnit" Target="vtParentBUnit"/>
+</EntitySet>
+<EntitySet Name="vtBunitPorts" EntityType="FIS.Integrity.OData.Entity0016"/>
+<EntitySet Name="vtLocalCurrency" EntityType="FIS.Integrity.OData.Entity0072"/>
+<EntitySet Name="vtParentBUnit" EntityType="FIS.Integrity.OData.Entity0013"/>
+<EntitySet Name="vtBunitConsols" EntityType="FIS.Integrity.OData.Entity0014"/>
+<EntitySet Name="vtBunitSettles" EntityType="FIS.Integrity.OData.Entity0017"/>
+<EntitySet Name="vtExps" EntityType="FIS.Integrity.OData.Entity0077"/>
+<EntitySet Name="BunitConsol" EntityType="FIS.Integrity.OData.Entity0014">
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+</EntitySet>
+<EntitySet Name="Entity0013" EntityType="FIS.Integrity.OData.Entity0013"/>
+<EntitySet Name="BunitIntercoyAccts" EntityType="FIS.Integrity.OData.Entity0015"/>
+<EntitySet Name="BunitPort" EntityType="FIS.Integrity.OData.Entity0016"/>
+<EntitySet Name="BunitSettle" EntityType="FIS.Integrity.OData.Entity0017"/>
+<EntitySet Name="CashAddenda" EntityType="FIS.Integrity.OData.Entity0018">
+<NavigationPropertyBinding Path="vtCashAddendaFields" Target="vtCashAddendaFields"/>
+</EntitySet>
+<EntitySet Name="vtCashAddendaFields" EntityType="FIS.Integrity.OData.Entity0019"/>
+<EntitySet Name="CashAddendaField" EntityType="FIS.Integrity.OData.Entity0019">
+<NavigationPropertyBinding Path="vtCashAddendaLists" Target="vtCashAddendaLists"/>
+</EntitySet>
+<EntitySet Name="vtCashAddendaLists" EntityType="FIS.Integrity.OData.Entity0020"/>
+<EntitySet Name="CashAddendaList" EntityType="FIS.Integrity.OData.Entity0020"/>
+<EntitySet Name="CashLayout" EntityType="FIS.Integrity.OData.Entity0023"/>
+<EntitySet Name="CashLayoutGrp" EntityType="FIS.Integrity.OData.Entity0024">
+<NavigationPropertyBinding Path="Entity0023" Target="Entity0023"/>
+<NavigationPropertyBinding Path="vtCashLayoutGrpCats" Target="vtCashLayoutGrpCats"/>
+</EntitySet>
+<EntitySet Name="Entity0023" EntityType="FIS.Integrity.OData.Entity0023"/>
+<EntitySet Name="vtCashLayoutGrpCats" EntityType="FIS.Integrity.OData.Entity0025"/>
+<EntitySet Name="CashLayoutGrpCat" EntityType="FIS.Integrity.OData.Entity0025">
+<NavigationPropertyBinding Path="Entity0024" Target="Entity0024"/>
+<NavigationPropertyBinding Path="Entity0054" Target="Entity0054"/>
+</EntitySet>
+<EntitySet Name="Entity0024" EntityType="FIS.Integrity.OData.Entity0024"/>
+<EntitySet Name="CashMultiDissect" EntityType="FIS.Integrity.OData.Entity0027"/>
+<EntitySet Name="CashStmtMultiDissect" EntityType="FIS.Integrity.OData.Entity0028"/>
+<EntitySet Name="CashStmtRule" EntityType="FIS.Integrity.OData.Entity0029">
+<NavigationPropertyBinding Path="vtCashMultiDissects" Target="vtCashMultiDissects"/>
+<NavigationPropertyBinding Path="vtCashStmtMultiDissects" Target="vtCashStmtMultiDissects"/>
+<NavigationPropertyBinding Path="vtCashStmtRuleDetails" Target="vtCashStmtRuleDetails"/>
+<NavigationPropertyBinding Path="vtCashStmtRuleOurbanks" Target="vtCashStmtRuleOurbanks"/>
+<NavigationPropertyBinding Path="vtCashStmtRulePoolGroups" Target="vtCashStmtRulePoolGroups"/>
+</EntitySet>
+<EntitySet Name="vtCashStmtRuleDetails" EntityType="FIS.Integrity.OData.Entity0030"/>
+<EntitySet Name="vtCashStmtRuleOurbanks" EntityType="FIS.Integrity.OData.Entity0031"/>
+<EntitySet Name="vtCashStmtRulePoolGroups" EntityType="FIS.Integrity.OData.Entity0032"/>
+<EntitySet Name="vtCashStmtMultiDissects" EntityType="FIS.Integrity.OData.Entity0028"/>
+<EntitySet Name="vtCashMultiDissects" EntityType="FIS.Integrity.OData.Entity0027"/>
+<EntitySet Name="CashStmtRuleDetail" EntityType="FIS.Integrity.OData.Entity0030"/>
+<EntitySet Name="CashStmtRuleOurbank" EntityType="FIS.Integrity.OData.Entity0031"/>
+<EntitySet Name="CashStmtRulePoolGroup" EntityType="FIS.Integrity.OData.Entity0032"/>
+<EntitySet Name="CashTflowAddenda" EntityType="FIS.Integrity.OData.Entity0033">
+<NavigationPropertyBinding Path="vtCashTflowAddendaImgs" Target="vtCashTflowAddendaImgs"/>
+</EntitySet>
+<EntitySet Name="vtCashTflowAddendaImgs" EntityType="FIS.Integrity.OData.Entity0034"/>
+<EntitySet Name="CashTflowAddendaImg" EntityType="FIS.Integrity.OData.Entity0034"/>
+<EntitySet Name="CashTflowTemplate" EntityType="FIS.Integrity.OData.Entity0036">
+<NavigationPropertyBinding Path="Entity0001" Target="Entity0001"/>
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+<NavigationPropertyBinding Path="Entity0033" Target="Entity0033"/>
+<NavigationPropertyBinding Path="Entity0035" Target="Entity0035"/>
+<NavigationPropertyBinding Path="vtCashTflowTemplateActions" Target="vtCashTflowTemplateActions"/>
+<NavigationPropertyBinding Path="vtCashTflowTemplateAlcs" Target="vtCashTflowTemplateAlcs"/>
+<NavigationPropertyBinding Path="vtCashTflowTemplateApps" Target="vtCashTflowTemplateApps"/>
+<NavigationPropertyBinding Path="Entity0041" Target="Entity0041"/>
+<NavigationPropertyBinding Path="vtCashTflowTemplateEfts" Target="vtCashTflowTemplateEfts"/>
+<NavigationPropertyBinding Path="vtCashTflowTemplateGls" Target="vtCashTflowTemplateGls"/>
+<NavigationPropertyBinding Path="Entity0055" Target="Entity0055"/>
+<NavigationPropertyBinding Path="vtCorpBank_OurBankPay" Target="vtCorpBank_OurBankPay"/>
+<NavigationPropertyBinding Path="vtCorpBank_OurBankRec" Target="vtCorpBank_OurBankRec"/>
+<NavigationPropertyBinding Path="Entity0064" Target="Entity0064"/>
+<NavigationPropertyBinding Path="vtCptyBank_TheirBankPay" Target="vtCptyBank_TheirBankPay"/>
+<NavigationPropertyBinding Path="vtCptyBank_TheirBankRec" Target="vtCptyBank_TheirBankRec"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+<NavigationPropertyBinding Path="Entity0096" Target="Entity0096"/>
+</EntitySet>
+<EntitySet Name="Entity0064" EntityType="FIS.Integrity.OData.Entity0064"/>
+<EntitySet Name="vtCorpBank_OurBankPay" EntityType="FIS.Integrity.OData.Entity0057"/>
+<EntitySet Name="vtCorpBank_OurBankRec" EntityType="FIS.Integrity.OData.Entity0057"/>
+<EntitySet Name="vtCptyBank_TheirBankPay" EntityType="FIS.Integrity.OData.Entity0065"/>
+<EntitySet Name="vtCptyBank_TheirBankRec" EntityType="FIS.Integrity.OData.Entity0065"/>
+<EntitySet Name="Entity0096" EntityType="FIS.Integrity.OData.Entity0096"/>
+<EntitySet Name="Entity0033" EntityType="FIS.Integrity.OData.Entity0033"/>
+<EntitySet Name="Entity0035" EntityType="FIS.Integrity.OData.Entity0035"/>
+<EntitySet Name="vtCashTflowTemplateActions" EntityType="FIS.Integrity.OData.Entity0037"/>
+<EntitySet Name="vtCashTflowTemplateAlcs" EntityType="FIS.Integrity.OData.Entity0038"/>
+<EntitySet Name="vtCashTflowTemplateApps" EntityType="FIS.Integrity.OData.Entity0039"/>
+<EntitySet Name="Entity0041" EntityType="FIS.Integrity.OData.Entity0041"/>
+<EntitySet Name="vtCashTflowTemplateEfts" EntityType="FIS.Integrity.OData.Entity0042"/>
+<EntitySet Name="vtCashTflowTemplateGls" EntityType="FIS.Integrity.OData.Entity0044"/>
+<EntitySet Name="CashTranslate" EntityType="FIS.Integrity.OData.Entity0046">
+<NavigationPropertyBinding Path="vtCashTranslateItems" Target="vtCashTranslateItems"/>
+<NavigationPropertyBinding Path="Entity0048" Target="Entity0048"/>
+<NavigationPropertyBinding Path="Entity0049" Target="Entity0049"/>
+<NavigationPropertyBinding Path="Entity0054" Target="Entity0054"/>
+</EntitySet>
+<EntitySet Name="vtCashTranslateItems" EntityType="FIS.Integrity.OData.Entity0047"/>
+<EntitySet Name="Entity0048" EntityType="FIS.Integrity.OData.Entity0048"/>
+<EntitySet Name="Entity0049" EntityType="FIS.Integrity.OData.Entity0049"/>
+<EntitySet Name="CashTranslateItem" EntityType="FIS.Integrity.OData.Entity0047"/>
+<EntitySet Name="CashTranslateTrans" EntityType="FIS.Integrity.OData.Entity0049"/>
+<EntitySet Name="CashTranslateOurbank" EntityType="FIS.Integrity.OData.Entity0048">
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+<NavigationPropertyBinding Path="Entity0063" Target="Entity0063"/>
+</EntitySet>
+<EntitySet Name="Entity0063" EntityType="FIS.Integrity.OData.Entity0063"/>
+<EntitySet Name="CashWsheetCatTrans" EntityType="FIS.Integrity.OData.Entity0053"/>
+<EntitySet Name="CashWsheetCategory" EntityType="FIS.Integrity.OData.Entity0054">
+<NavigationPropertyBinding Path="Entity0053" Target="Entity0053"/>
+</EntitySet>
+<EntitySet Name="Entity0053" EntityType="FIS.Integrity.OData.Entity0053"/>
+<EntitySet Name="CommodityType" EntityType="FIS.Integrity.OData.Entity0055"/>
+<EntitySet Name="CorpBank" EntityType="FIS.Integrity.OData.Entity0057">
+<NavigationPropertyBinding Path="Entity0001" Target="Entity0001"/>
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+<NavigationPropertyBinding Path="Entity0055" Target="Entity0055"/>
+<NavigationPropertyBinding Path="Entity0058" Target="Entity0058"/>
+<NavigationPropertyBinding Path="vtCorpBankBeneficiaryBankCodes" Target="vtCorpBankBeneficiaryBankCodes"/>
+<NavigationPropertyBinding Path="vtCorpBankCorrespondentCodes" Target="vtCorpBankCorrespondentCodes"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+</EntitySet>
+<EntitySet Name="Entity0058" EntityType="FIS.Integrity.OData.Entity0058"/>
+<EntitySet Name="vtCorpBankBeneficiaryBankCodes" EntityType="FIS.Integrity.OData.Entity0059"/>
+<EntitySet Name="vtCorpBankCorrespondentCodes" EntityType="FIS.Integrity.OData.Entity0060"/>
+<EntitySet Name="CorpBankAccountNumbers" EntityType="FIS.Integrity.OData.Entity0058"/>
+<EntitySet Name="CorpBankBeneficiaryBankCode" EntityType="FIS.Integrity.OData.Entity0059"/>
+<EntitySet Name="CorpBankCorrespondentCode" EntityType="FIS.Integrity.OData.Entity0060"/>
+<EntitySet Name="CorpBankMandate" EntityType="FIS.Integrity.OData.Entity0061"/>
+<EntitySet Name="CorpPool" EntityType="FIS.Integrity.OData.Entity0062">
+<NavigationPropertyBinding Path="Entity0055" Target="Entity0055"/>
+<NavigationPropertyBinding Path="vtCorpPoolGroups" Target="vtCorpPoolGroups"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+</EntitySet>
+<EntitySet Name="vtCorpPoolGroups" EntityType="FIS.Integrity.OData.Entity0063"/>
+<EntitySet Name="CorpPoolGroup" EntityType="FIS.Integrity.OData.Entity0063">
+<NavigationPropertyBinding Path="Entity0023" Target="Entity0023"/>
+</EntitySet>
+<EntitySet Name="Cpty" EntityType="FIS.Integrity.OData.Entity0064">
+<NavigationPropertyBinding Path="Entity0001" Target="Entity0001"/>
+<NavigationPropertyBinding Path="vtCptyBanks" Target="vtCptyBanks"/>
+<NavigationPropertyBinding Path="Entity0068" Target="Entity0068"/>
+<NavigationPropertyBinding Path="vtCptyExpLinks" Target="vtCptyExpLinks"/>
+<NavigationPropertyBinding Path="Entity0070" Target="Entity0070"/>
+<NavigationPropertyBinding Path="vtCptySettles" Target="vtCptySettles"/>
+</EntitySet>
+<EntitySet Name="vtCptyBanks" EntityType="FIS.Integrity.OData.Entity0065"/>
+<EntitySet Name="Entity0068" EntityType="FIS.Integrity.OData.Entity0068"/>
+<EntitySet Name="vtCptyExpLinks" EntityType="FIS.Integrity.OData.Entity0069"/>
+<EntitySet Name="Entity0070" EntityType="FIS.Integrity.OData.Entity0070"/>
+<EntitySet Name="vtCptySettles" EntityType="FIS.Integrity.OData.Entity0071"/>
+<EntitySet Name="CptyBank" EntityType="FIS.Integrity.OData.Entity0065">
+<NavigationPropertyBinding Path="Entity0001" Target="Entity0001"/>
+<NavigationPropertyBinding Path="Entity0007" Target="Entity0007"/>
+<NavigationPropertyBinding Path="Entity0055" Target="Entity0055"/>
+<NavigationPropertyBinding Path="vtCptyBankBeneficiaryBankCodes" Target="vtCptyBankBeneficiaryBankCodes"/>
+<NavigationPropertyBinding Path="vtCptyBankCorrespondentCodes" Target="vtCptyBankCorrespondentCodes"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+</EntitySet>
+<EntitySet Name="Entity0007" EntityType="FIS.Integrity.OData.Entity0007"/>
+<EntitySet Name="vtCptyBankBeneficiaryBankCodes" EntityType="FIS.Integrity.OData.Entity0066"/>
+<EntitySet Name="vtCptyBankCorrespondentCodes" EntityType="FIS.Integrity.OData.Entity0067"/>
+<EntitySet Name="CptyBankBeneficiaryBankCode" EntityType="FIS.Integrity.OData.Entity0066"/>
+<EntitySet Name="CptyBankCorrespondentCode" EntityType="FIS.Integrity.OData.Entity0067"/>
+<EntitySet Name="CptyExpLink" EntityType="FIS.Integrity.OData.Entity0069">
+<NavigationPropertyBinding Path="Entity0064" Target="Entity0064"/>
+</EntitySet>
+<EntitySet Name="CptyLetters" EntityType="FIS.Integrity.OData.Entity0070"/>
+<EntitySet Name="CptySettle" EntityType="FIS.Integrity.OData.Entity0071">
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+<NavigationPropertyBinding Path="Entity0055" Target="Entity0055"/>
+<NavigationPropertyBinding Path="Entity0065" Target="Entity0065"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+</EntitySet>
+<EntitySet Name="Entity0065" EntityType="FIS.Integrity.OData.Entity0065"/>
+<EntitySet Name="Curr" EntityType="FIS.Integrity.OData.Entity0072">
+<NavigationPropertyBinding Path="Entity0073" Target="Entity0073"/>
+<NavigationPropertyBinding Path="vtCurrRefs" Target="vtCurrRefs"/>
+</EntitySet>
+<EntitySet Name="Entity0073" EntityType="FIS.Integrity.OData.Entity0073"/>
+<EntitySet Name="vtCurrRefs" EntityType="FIS.Integrity.OData.Entity0074"/>
+<EntitySet Name="CurrFactors" EntityType="FIS.Integrity.OData.Entity0073"/>
+<EntitySet Name="CurrRef" EntityType="FIS.Integrity.OData.Entity0074"/>
+<EntitySet Name="Exp" EntityType="FIS.Integrity.OData.Entity0077">
+<NavigationPropertyBinding Path="Entity0064" Target="Entity0064"/>
+</EntitySet>
+<EntitySet Name="Iban" EntityType="FIS.Integrity.OData.Entity0078"/>
+<EntitySet Name="InterfaceMap" EntityType="FIS.Integrity.OData.Entity0079"/>
+<EntitySet Name="Trans" EntityType="FIS.Integrity.OData.Entity0096">
+<NavigationPropertyBinding Path="vtTransAttributes" Target="vtTransAttributes"/>
+<NavigationPropertyBinding Path="Entity0098" Target="Entity0098"/>
+<NavigationPropertyBinding Path="Entity0099" Target="Entity0099"/>
+<NavigationPropertyBinding Path="Entity0100" Target="Entity0100"/>
+<NavigationPropertyBinding Path="vtTransSettles" Target="vtTransSettles"/>
+</EntitySet>
+<EntitySet Name="vtTransAttributes" EntityType="FIS.Integrity.OData.Entity0097"/>
+<EntitySet Name="Entity0099" EntityType="FIS.Integrity.OData.Entity0099"/>
+<EntitySet Name="Entity0098" EntityType="FIS.Integrity.OData.Entity0098"/>
+<EntitySet Name="vtTransSettles" EntityType="FIS.Integrity.OData.Entity0101"/>
+<EntitySet Name="Entity0100" EntityType="FIS.Integrity.OData.Entity0100"/>
+<EntitySet Name="TransAttribute" EntityType="FIS.Integrity.OData.Entity0097"/>
+<EntitySet Name="TransCurves" EntityType="FIS.Integrity.OData.Entity0098"/>
+<EntitySet Name="TransDefaults" EntityType="FIS.Integrity.OData.Entity0099"/>
+<EntitySet Name="TransLetters" EntityType="FIS.Integrity.OData.Entity0100"/>
+<EntitySet Name="TransSettle" EntityType="FIS.Integrity.OData.Entity0101"/>
+<EntitySet Name="CptyContacts" EntityType="FIS.Integrity.OData.Entity0068">
+<NavigationPropertyBinding Path="Entity0064" Target="Entity0064"/>
+</EntitySet>
+<EntitySet Name="PmtMessage" EntityType="FIS.Integrity.OData.Entity0086">
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+<NavigationPropertyBinding Path="vtPmtBatches" Target="vtPmtBatches"/>
+<NavigationPropertyBinding Path="vtPmtDocument_OriginalDoc" Target="vtPmtDocument_OriginalDoc"/>
+<NavigationPropertyBinding Path="vtPmtDocument_SentDoc" Target="vtPmtDocument_SentDoc"/>
+<NavigationPropertyBinding Path="Entity0087" Target="Entity0087"/>
+<NavigationPropertyBinding Path="vtPmtMessagePendingApps" Target="vtPmtMessagePendingApps"/>
+<NavigationPropertyBinding Path="Entity0096" Target="Entity0096"/>
+</EntitySet>
+<EntitySet Name="vtPmtDocument_OriginalDoc" EntityType="FIS.Integrity.OData.Entity0083"/>
+<EntitySet Name="vtPmtDocument_SentDoc" EntityType="FIS.Integrity.OData.Entity0083"/>
+<EntitySet Name="Entity0087" EntityType="FIS.Integrity.OData.Entity0087"/>
+<EntitySet Name="vtPmtMessagePendingApps" EntityType="FIS.Integrity.OData.Entity0088"/>
+<EntitySet Name="vtPmtBatches" EntityType="FIS.Integrity.OData.Entity0081"/>
+<EntitySet Name="PmtBatch" EntityType="FIS.Integrity.OData.Entity0081">
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+<NavigationPropertyBinding Path="vtPmtPayments" Target="vtPmtPayments"/>
+</EntitySet>
+<EntitySet Name="vtPmtPayments" EntityType="FIS.Integrity.OData.Entity0089"/>
+<EntitySet Name="PmtAdditionalDocument" EntityType="FIS.Integrity.OData.Entity0080"/>
+<EntitySet Name="PmtCashFlow" EntityType="FIS.Integrity.OData.Entity0082">
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+<NavigationPropertyBinding Path="Entity0065" Target="Entity0065"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+<NavigationPropertyBinding Path="Entity0081" Target="Entity0081"/>
+</EntitySet>
+<EntitySet Name="Entity0081" EntityType="FIS.Integrity.OData.Entity0081"/>
+<EntitySet Name="PmtDocument" EntityType="FIS.Integrity.OData.Entity0083"/>
+<EntitySet Name="PmtFormattingRule" EntityType="FIS.Integrity.OData.Entity0084">
+<NavigationPropertyBinding Path="vtPmtFormattingRuleDetails" Target="vtPmtFormattingRuleDetails"/>
+</EntitySet>
+<EntitySet Name="vtPmtFormattingRuleDetails" EntityType="FIS.Integrity.OData.Entity0085"/>
+<EntitySet Name="PmtFormattingRuleDetail" EntityType="FIS.Integrity.OData.Entity0085"/>
+<EntitySet Name="PmtMessageActions" EntityType="FIS.Integrity.OData.Entity0087"/>
+<EntitySet Name="PmtMessagePendingApp" EntityType="FIS.Integrity.OData.Entity0088"/>
+<EntitySet Name="PmtPayment" EntityType="FIS.Integrity.OData.Entity0089">
+<NavigationPropertyBinding Path="Entity0013" Target="Entity0013"/>
+<NavigationPropertyBinding Path="Entity0057" Target="Entity0057"/>
+<NavigationPropertyBinding Path="Entity0072" Target="Entity0072"/>
+</EntitySet>
+<EntitySet Name="PmtPsr" EntityType="FIS.Integrity.OData.Entity0090">
+<NavigationPropertyBinding Path="vtPmtPsrMessages" Target="vtPmtPsrMessages"/>
+</EntitySet>
+<EntitySet Name="vtPmtPsrMessages" EntityType="FIS.Integrity.OData.Entity0093"/>
+<EntitySet Name="PmtPsrBatch" EntityType="FIS.Integrity.OData.Entity0091">
+<NavigationPropertyBinding Path="Entity0081" Target="Entity0081"/>
+<NavigationPropertyBinding Path="vtPmtPsrPayments" Target="vtPmtPsrPayments"/>
+</EntitySet>
+<EntitySet Name="vtPmtPsrPayments" EntityType="FIS.Integrity.OData.Entity0094"/>
+<EntitySet Name="PmtPsrFeeDetail" EntityType="FIS.Integrity.OData.Entity0092"/>
+<EntitySet Name="PmtPsrMessage" EntityType="FIS.Integrity.OData.Entity0093">
+<NavigationPropertyBinding Path="Entity0086" Target="Entity0086"/>
+<NavigationPropertyBinding Path="vtPmtPsrBatchs" Target="vtPmtPsrBatchs"/>
+</EntitySet>
+<EntitySet Name="Entity0086" EntityType="FIS.Integrity.OData.Entity0086"/>
+<EntitySet Name="vtPmtPsrBatchs" EntityType="FIS.Integrity.OData.Entity0091"/>
+<EntitySet Name="PmtPsrPayment" EntityType="FIS.Integrity.OData.Entity0094">
+<NavigationPropertyBinding Path="Entity0089" Target="Entity0089"/>
+<NavigationPropertyBinding Path="Entity0092" Target="Entity0092"/>
+<NavigationPropertyBinding Path="Entity0095" Target="Entity0095"/>
+</EntitySet>
+<EntitySet Name="Entity0089" EntityType="FIS.Integrity.OData.Entity0089"/>
+<EntitySet Name="Entity0092" EntityType="FIS.Integrity.OData.Entity0092"/>
+<EntitySet Name="Entity0095" EntityType="FIS.Integrity.OData.Entity0095"/>
+<EntitySet Name="PmtPsrReasons" EntityType="FIS.Integrity.OData.Entity0095"/>
+<EntitySet Name="CashDcwForecast" EntityType="FIS.Integrity.OData.Entity0021"/>
+<EntitySet Name="CashDetail" EntityType="FIS.Integrity.OData.Entity0022"/>
+<EntitySet Name="CashTflowReporting" EntityType="FIS.Integrity.OData.Entity0035"/>
+<EntitySet Name="CashTflowTemplateAction" EntityType="FIS.Integrity.OData.Entity0037"/>
+<EntitySet Name="CashTflowTemplateAlc" EntityType="FIS.Integrity.OData.Entity0038"/>
+<EntitySet Name="CashTflowTemplateApp" EntityType="FIS.Integrity.OData.Entity0039"/>
+<EntitySet Name="CashTflowTemplateAppImg" EntityType="FIS.Integrity.OData.Entity0040"/>
+<EntitySet Name="CashTflowTemplateCbk" EntityType="FIS.Integrity.OData.Entity0041"/>
+<EntitySet Name="CashTflowTemplateEft" EntityType="FIS.Integrity.OData.Entity0042">
+<NavigationPropertyBinding Path="vtCashTflowTemplateEftImgs" Target="vtCashTflowTemplateEftImgs"/>
+</EntitySet>
+<EntitySet Name="vtCashTflowTemplateEftImgs" EntityType="FIS.Integrity.OData.Entity0043"/>
+<EntitySet Name="CashTflowTemplateEftImg" EntityType="FIS.Integrity.OData.Entity0043"/>
+<EntitySet Name="CashTflowTemplateGl" EntityType="FIS.Integrity.OData.Entity0044"/>
+<EntitySet Name="CashTflowTemplateGlImg" EntityType="FIS.Integrity.OData.Entity0045"/>
+<EntitySet Name="CashView" EntityType="FIS.Integrity.OData.Entity0050"/>
+<EntitySet Name="CashWsHist" EntityType="FIS.Integrity.OData.Entity0051">
+<NavigationPropertyBinding Path="vtCashWsHistOpenbals" Target="vtCashWsHistOpenbals"/>
+</EntitySet>
+<EntitySet Name="vtCashWsHistOpenbals" EntityType="FIS.Integrity.OData.Entity0052"/>
+<EntitySet Name="CashWsHistOpenbal" EntityType="FIS.Integrity.OData.Entity0052"/>
+<EntitySet Name="ContInputTflow" EntityType="FIS.Integrity.OData.Entity0056">
+<NavigationPropertyBinding Path="Entity0036" Target="Entity0036"/>
+</EntitySet>
+<EntitySet Name="Entity0036" EntityType="FIS.Integrity.OData.Entity0036"/>
+<EntitySet Name="DcwHistoryParam" EntityType="FIS.Integrity.OData.Entity0075"/>
+<EntitySet Name="DcwHistorySumm" EntityType="FIS.Integrity.OData.Entity0076"/>
+<EntitySet Name="CashLookupCorpBank" EntityType="FIS.Integrity.OData.Entity0026"/>
+</EntityContainer>
+</Schema>
+</edmx:DataServices>
+</edmx:Edmx>
