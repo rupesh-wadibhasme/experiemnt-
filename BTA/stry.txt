@@ -1,0 +1,10 @@
+Title:
+Benchmark TabPFN vs Autoencoder for anomaly detection feasibility
+Body:
+We want to check if TabPFN (in-context learning, no per-client retraining) can replace or complement our per-client autoencoder for bank statement anomaly detection. Set up TabPFN v2 in FIS env (fix current CPU hang or get GPU), then run head to head comparison on same data using the benchmark harness - detection metrics, per anomaly type recall, runtime cost. TabPFN doesn't need to beat AE on accuracy - slightly worse is ok if the operational benefits (no training pipeline, no retraining) justify it. Output is a findings doc with go/no-go call.
+Acceptance Criteria:
+
+TabPFN runs end to end on real data in FIS env without hangs
+Comparison done on same train/test split: TabPFN vs AE (ROC-AUC, PR-AUC, per-type recall, runtime)
+Findings documented with clear go/no-go recommendation incl. trade-off reasoning
+If hardware blocks the run, document that as the finding with GPU requirement
